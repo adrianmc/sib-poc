@@ -1,0 +1,6 @@
+config/config.yaml
+config/*.pem
+salida/
+__pycache__/
+*.joblib
+data/

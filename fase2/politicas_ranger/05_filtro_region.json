@@ -1,0 +1,11 @@
+{
+  "service": "__HIVE__", "name": "sb_05_filtro_region_clientes", "policyType": 2, "isEnabled": true,
+  "description": "ABAC por atributo del usuario (modelado como grupo): cada analista ve solo su region",
+  "resources": {"database": {"values": ["sb_curated"]}, "table": {"values": ["clientes"]}},
+  "rowFilterPolicyItems": [
+    {"groups": ["attr_region_central"], "accesses": [{"type": "select", "isAllowed": true}],
+     "rowFilterInfo": {"filterExpr": "region = 'CENTRAL'"}},
+    {"groups": ["attr_region_norte"], "accesses": [{"type": "select", "isAllowed": true}],
+     "rowFilterInfo": {"filterExpr": "region = 'NORTE'"}}
+  ]
+}

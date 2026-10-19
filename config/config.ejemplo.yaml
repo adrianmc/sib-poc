@@ -1,0 +1,74 @@
+# =====================================================================
+# SB PoC - Configuracion unica. Reemplazar TODOS los valores CAMBIAR_*
+# con los datos del ambiente desplegado en Fase 0 y Fase 1.
+# Contiene credenciales: NO subir al repositorio (.gitignore).
+# En Azure DevOps se usa el Variable Group "sb-poc-secretos".
+# =====================================================================
+s3:
+  bucket: CAMBIAR_BUCKET                 # sin s3a:// (ej. sb-poc-data)
+  region: us-east-1
+
+impala:
+  host_depto_a: CAMBIAR_HOST_IMPALA_DEPTO_A   # coordinator-impala-depto-a.dw-xxxx.cloudera.site
+  host_depto_b: CAMBIAR_HOST_IMPALA_DEPTO_B
+  port: 443
+  http_path: cliservice
+  host_trino: CAMBIAR_HOST_TRINO_VW     # endpoint del Trino Virtual Warehouse
+
+# Usuarios de prueba (workload user + workload password de CDP)
+usuarios:
+  admin:       {user: sb_admin01,    password: CAMBIAR}
+  ingeniero:   {user: sb_ing01,      password: CAMBIAR}
+  cientifico:  {user: sb_cient01,    password: CAMBIAR}
+  cientifico2: {user: sb_cient02,    password: CAMBIAR}
+  analista:    {user: sb_analista01, password: CAMBIAR}   # region CENTRAL, SIN acceso confidencial
+  analista2:   {user: sb_analista02, password: CAMBIAR}   # region NORTE, CON acceso confidencial
+  auditor:     {user: sb_auditor01,  password: CAMBIAR}
+  mcp_restringido: {user: sb_mcp01,  password: CAMBIAR}
+  externo:     {user: sb_externo01,  password: CAMBIAR}
+
+datalake:
+  # Base Knox del Data Lake: https://<gateway-host>/<nombre-datalake>/cdp-proxy-api
+  knox_api: https://CAMBIAR_GATEWAY_HOST/CAMBIAR_DATALAKE/cdp-proxy-api
+  ranger_hive_service: cm_hive       # verificar nombre exacto en Ranger UI (Hadoop SQL)
+  ranger_tag_service: cm_tag         # verificar nombre exacto en Ranger UI (TAG)
+  ranger_trino_service: cm_trino     # servicio Ranger del Trino VW (verificar)
+  atlas_sufijo_cluster: cm           # qualifiedName de Atlas termina en @cm en CDP
+
+cde:
+  # Host del SERVICIO CDE (no del VC) + /gateway/authtkn/knoxtoken/api/v1/token
+  token_url: https://CAMBIAR_CDE_SERVICE_HOST/gateway/authtkn/knoxtoken/api/v1/token
+  jobs_api_depto_a: https://CAMBIAR_VC_A_HOST/dex/api/v1
+  jobs_api_depto_b: https://CAMBIAR_VC_B_HOST/dex/api/v1
+
+rds:
+  oracle:    {host: CAMBIAR_RDS_ORACLE, port: 1521, service: ORCL, user: SBCORE, password: CAMBIAR}
+  sqlserver: {host: CAMBIAR_RDS_SQLSERVER, port: 1433, database: sbcreditos, user: CAMBIAR, password: CAMBIAR}
+
+kafka:
+  brokers: CAMBIAR_BROKER1:9093,CAMBIAR_BROKER2:9093,CAMBIAR_BROKER3:9093
+  ca_pem: config/datahub-ca.pem      # certificado CA exportado del truststore del Data Hub
+  topic_rt: sb.transacciones.rt
+
+aws:
+  sqs_bronce_url: https://sqs.us-east-1.amazonaws.com/CAMBIAR_CUENTA/sb-bronce-eventos
+
+inferencia:
+  llm_base_url: https://CAMBIAR_ENDPOINT_LLM/v1          # Cloudera AI Inference (API compatible OpenAI)
+  llm_modelo: CAMBIAR_ID_MODELO_LLM
+  emb_base_url: https://CAMBIAR_ENDPOINT_EMBEDDINGS/v1
+  emb_modelo: CAMBIAR_ID_MODELO_EMBEDDINGS
+
+entra:
+  tenant_id: CAMBIAR
+  client_id: CAMBIAR
+  client_secret: CAMBIAR
+  sharepoint_site_id: CAMBIAR
+  sharepoint_list_id: CAMBIAR
+  dataverse_url: https://CAMBIAR.crm.dynamics.com
+
+apis:
+  alphavantage_key: CAMBIAR      # clave gratuita en alphavantage.co/support (25 solicitudes/dia)
+
+costos:
+  usd_hora_vw_impala: 0.0     # costo/hora del VW (CCU + EC2) para metricas registros/dolar (PG)

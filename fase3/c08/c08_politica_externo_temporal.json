@@ -1,0 +1,7 @@
+{
+  "service": "__HIVE__", "name": "sb_09_externo_temporal", "policyType": 0, "isEnabled": true,
+  "description": "C08-AE-07: acceso temporal de un ente externo solo a la tabla enmascarada; expira automaticamente",
+  "resources": {"database": {"values": ["sb_share"]}, "table": {"values": ["clientes_externo"]}, "column": {"values": ["*"]}},
+  "policyItems": [{"users": ["sb_externo01"], "accesses": [{"type": "select", "isAllowed": true}]}],
+  "validitySchedules": [{"startTime": "2026/08/01 00:00:00", "endTime": "2026/12/31 23:59:59", "timeZone": "America/Costa_Rica"}]
+}

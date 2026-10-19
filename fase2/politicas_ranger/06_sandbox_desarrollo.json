@@ -1,0 +1,9 @@
+{
+  "service": "__HIVE__", "name": "sb_06_sandbox_desarrollo", "policyType": 0, "isEnabled": true,
+  "description": "Autoservicio controlado: desarrolladores crean objetos solo en su sandbox",
+  "resources": {"database": {"values": ["sb_sandbox_depto_a", "sb_sandbox_depto_b"]},
+                "table": {"values": ["*"]}, "column": {"values": ["*"]}},
+  "policyItems": [
+    {"groups": ["sb_ingeniero", "sb_cientifico", "sb_admin"], "accesses": [{"type": "all", "isAllowed": true}]}
+  ]
+}

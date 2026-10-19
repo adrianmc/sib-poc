@@ -1,0 +1,28 @@
+{
+  "name": "sb-cdc-sqlserver-creditos",
+  "config": {
+    "connector.class": "io.debezium.connector.sqlserver.SqlServerConnector",
+    "tasks.max": "1",
+    "database.hostname": "CAMBIAR_RDS_SQLSERVER",
+    "database.port": "1433",
+    "database.user": "CAMBIAR",
+    "database.password": "CAMBIAR",
+    "database.dbname": "sbcreditos",
+    "database.names": "sbcreditos",
+    "database.server.name": "sbcreditos",
+    "topic.prefix": "sbcreditos",
+    "database.encrypt": "false",
+    "table.include.list": "dbo.creditos",
+    "snapshot.mode": "initial",
+    "decimal.handling.mode": "string",
+    "database.history.kafka.bootstrap.servers": "CAMBIAR_BROKERS",
+    "database.history.kafka.topic": "sbcreditos.historia.esquema",
+    "schema.history.internal.kafka.bootstrap.servers": "CAMBIAR_BROKERS",
+    "schema.history.internal.kafka.topic": "sbcreditos.historia.esquema",
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "value.converter.schemas.enable": "false"
+  },
+  "_notas": ["Opcional: el pipeline batch lee creditos por JDBC. Este conector demuestra CDC tambien sobre SQL Server."]
+}

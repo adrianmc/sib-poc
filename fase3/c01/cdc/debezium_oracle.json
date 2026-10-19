@@ -1,0 +1,34 @@
+{
+  "name": "sb-cdc-oracle-core",
+  "config": {
+    "connector.class": "io.debezium.connector.oracle.OracleConnector",
+    "tasks.max": "1",
+    "database.hostname": "CAMBIAR_RDS_ORACLE",
+    "database.port": "1521",
+    "database.user": "DBZUSER",
+    "database.password": "CAMBIAR",
+    "database.dbname": "ORCL",
+    "database.server.name": "sbcore",
+    "topic.prefix": "sbcore",
+    "table.include.list": "SBCORE.CLIENTES,SBCORE.CUENTAS",
+    "database.connection.adapter": "logminer",
+    "log.mining.strategy": "online_catalog",
+    "snapshot.mode": "initial",
+    "decimal.handling.mode": "string",
+    "time.precision.mode": "connect",
+    "database.history.kafka.bootstrap.servers": "CAMBIAR_BROKERS",
+    "database.history.kafka.topic": "sbcore.historia.esquema",
+    "schema.history.internal.kafka.bootstrap.servers": "CAMBIAR_BROKERS",
+    "schema.history.internal.kafka.topic": "sbcore.historia.esquema",
+    "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+    "key.converter.schemas.enable": "false",
+    "value.converter.schemas.enable": "false"
+  },
+  "_notas": [
+    "Crear en SMM > Connect > New Connector (o REST de Kafka Connect). Subir ojdbc8/ojdbc11 al classpath de Connect si la version lo requiere.",
+    "Debezium 1.x usa database.server.name / database.history.*; Debezium 2.x usa topic.prefix / schema.history.internal.*. Dejar solo el par que aplique a la version incluida.",
+    "Si Kafka exige SASL_SSL, agregar las propiedades database.history(.producer/.consumer).security.protocol, sasl.mechanism y sasl.jaas.config.",
+    "Topicos resultantes: sbcore.SBCORE.CLIENTES y sbcore.SBCORE.CUENTAS"
+  ]
+}

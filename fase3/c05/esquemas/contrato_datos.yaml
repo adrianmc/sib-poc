@@ -1,0 +1,23 @@
+# Contrato de datos versionado junto con el codigo (C05-AE-06: versionado de esquema)
+sb_curated.transacciones:
+  id_transaccion: string
+  id_cuenta: bigint
+  fecha_hora: timestamp
+  tipo: string
+  canal: string
+  monto: decimal(18,2)
+  moneda: string
+  id_entidad_destino: int
+  nombre_entidad: string
+  formato_origen: string
+  fecha_proceso: timestamp
+sb_consumption.resumen_cliente_mensual:
+  id_cliente: bigint
+  region: string
+  segmento: string
+  mes: date
+  num_transacciones: bigint
+  monto_total: decimal(20,2)
+  canales_distintos: bigint
+  ranking_region: int
+  fecha_proceso: timestamp

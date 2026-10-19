@@ -1,0 +1,26 @@
+{
+  "mcpServers": {
+    "sb-lakehouse-restringido": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/cloudera/iceberg-mcp-server@main", "run-server"],
+      "env": {
+        "IMPALA_HOST": "CAMBIAR_HOST_IMPALA_DEPTO_A",
+        "IMPALA_PORT": "443",
+        "IMPALA_USER": "sb_mcp01",
+        "IMPALA_PASSWORD": "CAMBIAR",
+        "IMPALA_DATABASE": "sb_consumption"
+      }
+    },
+    "sb-lakehouse-admin": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/cloudera/iceberg-mcp-server@main", "run-server"],
+      "env": {
+        "IMPALA_HOST": "CAMBIAR_HOST_IMPALA_DEPTO_A",
+        "IMPALA_PORT": "443",
+        "IMPALA_USER": "sb_admin01",
+        "IMPALA_PASSWORD": "CAMBIAR",
+        "IMPALA_DATABASE": "sb_consumption"
+      }
+    }
+  }
+}

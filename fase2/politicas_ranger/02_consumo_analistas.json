@@ -1,0 +1,9 @@
+{
+  "service": "__HIVE__", "name": "sb_02_consumo_analistas", "policyType": 0, "isEnabled": true,
+  "description": "RBAC: analistas solo leen curada (clientes/creditos) y consumible",
+  "resources": {"database": {"values": ["sb_consumption", "sb_curated"]},
+                "table": {"values": ["*"]}, "column": {"values": ["*"]}},
+  "policyItems": [
+    {"groups": ["sb_analista"], "accesses": [{"type": "select", "isAllowed": true}]}
+  ]
+}

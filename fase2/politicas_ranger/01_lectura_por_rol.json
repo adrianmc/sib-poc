@@ -1,0 +1,10 @@
+{
+  "service": "__HIVE__", "name": "sb_01_lectura_por_rol", "policyType": 0, "isEnabled": true,
+  "description": "RBAC: lectura por capa segun rol",
+  "resources": {"database": {"values": ["sb_raw", "sb_curated", "sb_consumption"]},
+                "table": {"values": ["*"]}, "column": {"values": ["*"]}},
+  "policyItems": [
+    {"groups": ["sb_admin", "sb_ingeniero"], "accesses": [{"type": "all", "isAllowed": true}]},
+    {"groups": ["sb_cientifico", "sb_auditor"], "accesses": [{"type": "select", "isAllowed": true}]}
+  ]
+}

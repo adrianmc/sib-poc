@@ -1,0 +1,120 @@
+# REFERENCIA: equivalente en Azure Pipelines para cuando la SB lo use en su organizacion.
+# En la PoC se ejecuta .github/workflows/sb-cicd.yml (mismos scripts; solo cambia el orquestador).
+# =====================================================================
+# C05: CI/CD de artefactos de datos en Azure DevOps hacia Cloudera (CDE + CDW)
+# PR -> validacion (esquema + calidad) + empaquetado + despliegue a DEV + verificacion (resultado visible en el PR).
+# Merge a main -> TEST (verificado) -> gate de aprobacion manual -> PROD (verificado).
+# Rollback: ejecutar el pipeline manualmente con el parametro rollbackRef = tag estable (ej. v1.0.0).
+# Prerrequisitos en Azure DevOps:
+#   - Variable group "sb-poc-secretos": CONFIG_YAML (contenido completo de config/config.yaml, secreto)
+#   - Environments "sb-dev", "sb-test" y "sb-prod"; en sb-prod: Approvals and checks -> Approvals (usuario aprobador)
+#   - Branch policy en main: Build validation con este pipeline
+# =====================================================================
+trigger:
+  branches:
+    include: [main]
+pr:
+  branches:
+    include: [main]
+
+parameters:
+  - name: rollbackRef
+    displayName: "Rollback: tag o commit a redesplegar (vacio = version actual)"
+    type: string
+    default: " "
+
+variables:
+  - group: sb-poc-secretos
+  - name: VERSION
+    value: $(Build.SourceVersion)
+
+pool:
+  vmImage: ubuntu-latest
+
+stages:
+  - stage: Validar
+    displayName: "CI: validacion de esquema y calidad de datos"
+    jobs:
+      - job: validar
+        steps:
+          - checkout: self
+            fetchDepth: 0
+          - script: |
+              git checkout ${{ parameters.rollbackRef }}
+            displayName: "Checkout de rollback (solo si se indico rollbackRef)"
+            condition: ne('${{ parameters.rollbackRef }}', ' ')
+          - task: UsePythonVersion@0
+            inputs: {versionSpec: "3.11"}
+          - script: |
+              pip install pyyaml requests impyla
+              echo "$(CONFIG_YAML)" > config/config.yaml
+            displayName: "Dependencias y configuracion"
+          - script: python fase3/c05/validar_esquema.py
+            displayName: "Validacion de esquema (contrato de datos)"
+          - script: python fase3/c05/validar_calidad.py
+            displayName: "Validacion de calidad de datos"
+          - task: PublishPipelineArtifact@1
+            inputs:
+              targetPath: fase3/c02
+              artifact: codigo_pipeline
+
+  - stage: Desplegar_Dev
+    displayName: "PR: despliegue a DEV y verificacion"
+    dependsOn: Validar
+    condition: and(succeeded(), eq(variables['Build.Reason'], 'PullRequest'))
+    jobs:
+      - deployment: dev
+        environment: sb-dev
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                  fetchDepth: 0
+                - script: |
+                    pip install pyyaml requests impyla
+                    echo "$(CONFIG_YAML)" > config/config.yaml
+                    python fase3/c05/desplegar_cde.py --ambiente dev --version $(git rev-parse --short HEAD) --autor "$(Build.RequestedFor)"
+                  displayName: "Desplegar job CDE (dev) y verificar ejecucion"
+
+  - stage: Desplegar_Test
+    displayName: "CD: despliegue a TEST"
+    dependsOn: Validar
+    condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+    jobs:
+      - deployment: test
+        environment: sb-test
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                  fetchDepth: 0
+                - script: git checkout ${{ parameters.rollbackRef }}
+                  condition: ne('${{ parameters.rollbackRef }}', ' ')
+                - script: |
+                    pip install pyyaml requests impyla
+                    echo "$(CONFIG_YAML)" > config/config.yaml
+                    python fase3/c05/desplegar_cde.py --ambiente test --version $(git rev-parse --short HEAD) --autor "$(Build.RequestedFor)"
+                  displayName: "Desplegar job CDE (test) y verificar"
+
+  - stage: Desplegar_Prod
+    displayName: "CD: despliegue a PROD (requiere aprobacion)"
+    dependsOn: Desplegar_Test
+    condition: succeeded()
+    jobs:
+      - deployment: prod
+        environment: sb-prod      # el gate de aprobacion manual esta configurado en este Environment
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                  fetchDepth: 0
+                - script: git checkout ${{ parameters.rollbackRef }}
+                  condition: ne('${{ parameters.rollbackRef }}', ' ')
+                - script: |
+                    pip install pyyaml requests impyla
+                    echo "$(CONFIG_YAML)" > config/config.yaml
+                    python fase3/c05/desplegar_cde.py --ambiente prod --version $(git rev-parse --short HEAD) --autor "$(Build.RequestedFor)"
+                  displayName: "Desplegar job CDE (prod) y verificar"

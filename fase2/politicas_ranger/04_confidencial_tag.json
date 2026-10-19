@@ -1,0 +1,14 @@
+{
+  "service": "__TAG__", "name": "sb_04_confidencial_por_atributo", "policyType": 0, "isEnabled": true,
+  "description": "ABAC: columnas CONFIDENCIAL solo para quien tiene el atributo attr_acceso_confidencial",
+  "resources": {"tag": {"values": ["CONFIDENCIAL"]}},
+  "policyItems": [
+    {"groups": ["sb_admin", "sb_ingeniero", "sb_cientifico", "sb_auditor", "attr_acceso_confidencial"], "accesses": [{"type": "hive:select", "isAllowed": true}]}
+  ],
+  "denyPolicyItems": [
+    {"groups": ["public"], "accesses": [{"type": "hive:select", "isAllowed": true}]}
+  ],
+  "denyExceptions": [
+    {"groups": ["sb_admin", "sb_ingeniero", "sb_cientifico", "sb_auditor", "attr_acceso_confidencial"], "accesses": [{"type": "hive:select", "isAllowed": true}]}
+  ]
+}

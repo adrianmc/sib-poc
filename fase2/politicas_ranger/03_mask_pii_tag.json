@@ -1,0 +1,11 @@
+{
+  "service": "__TAG__", "name": "sb_03_mask_pii", "policyType": 1, "isEnabled": true,
+  "description": "ABAC por atributo del dato: toda columna con tag PII se enmascara con hash (deterministico, permite JOIN)",
+  "resources": {"tag": {"values": ["PII"]}},
+  "dataMaskPolicyItems": [
+    {"groups": ["sb_admin", "sb_auditor"], "accesses": [{"type": "hive:select", "isAllowed": true}],
+     "dataMaskInfo": {"dataMaskType": "hive:MASK_NONE"}},
+    {"groups": ["public"], "accesses": [{"type": "hive:select", "isAllowed": true}],
+     "dataMaskInfo": {"dataMaskType": "hive:MASK_HASH"}}
+  ]
+}

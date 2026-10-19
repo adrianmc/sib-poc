@@ -1,0 +1,11 @@
+{
+  "service": "__HIVE__", "name": "sb_07_gobierno_operativo", "policyType": 0, "isEnabled": true,
+  "description": "Tablas operativas: solicitudes de acceso, despliegues",
+  "resources": {"database": {"values": ["sb_gov"]}, "table": {"values": ["*"]}, "column": {"values": ["*"]}},
+  "policyItems": [
+    {"groups": ["sb_admin"], "accesses": [{"type": "all", "isAllowed": true}]},
+    {"groups": ["sb_analista", "sb_cientifico", "sb_ingeniero"],
+     "accesses": [{"type": "select", "isAllowed": true}, {"type": "update", "isAllowed": true}]},
+    {"groups": ["sb_auditor"], "accesses": [{"type": "select", "isAllowed": true}]}
+  ]
+}

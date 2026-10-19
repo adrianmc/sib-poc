@@ -1,0 +1,94 @@
+# =====================================================================
+# C05: CI/CD de artefactos de datos con GitHub Actions hacia Cloudera (CDE + CDW).
+# PR -> validacion (esquema + calidad) + empaquetado + despliegue a DEV + verificacion (check visible en el PR).
+# Push a main -> TEST (verificado) -> gate de aprobacion manual (environment sb-prod) -> PROD (verificado).
+# Rollback: Actions > sb-cicd > Run workflow, con rollback_ref = tag estable (ej. v1.0.0).
+#
+# Prerrequisitos (ver fase3/c05/LEEME_CICD.md):
+#  - Repositorio PUBLICO en GitHub Free (required reviewers en repos privados solo con GitHub Enterprise).
+#    No contiene secretos ni datos: config.yaml esta en .gitignore y los datos son sinteticos.
+#  - Secret de repositorio CONFIG_YAML = contenido completo de config/config.yaml.
+#  - Environments sb-dev, sb-test, sb-prod; en sb-prod: Required reviewers = usuario aprobador
+#    y "Prevent self-review" activado (quien ejecuta no puede aprobar).
+#  - Runner self-hosted con etiqueta sb-poc DENTRO de la VPC (EC2 Windows), con Python 3.10+ y git:
+#    los endpoints de CDW/CDE tienen allowlist de IP y los runners hospedados de GitHub no entrarian.
+# =====================================================================
+name: sb-cicd
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      rollback_ref:
+        description: "Rollback: tag o commit estable a redesplegar (ej. v1.0.0)"
+        required: true
+
+env:
+  REF: ${{ github.event.inputs.rollback_ref || github.sha }}
+
+jobs:
+  validar:
+    name: "CI: validacion de esquema y calidad"
+    runs-on: [self-hosted, sb-poc]
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ env.REF }}", fetch-depth: 0 }
+      - name: Dependencias y configuracion
+        env: { CONFIG_YAML: "${{ secrets.CONFIG_YAML }}" }
+        run: |
+          python -m pip install pyyaml requests impyla
+          python -c "import os; open('config/config.yaml','w').write(os.environ['CONFIG_YAML'])"
+      - name: Validacion de esquema (contrato de datos)
+        run: python fase3/c05/validar_esquema.py
+      - name: Validacion de calidad de datos
+        run: python fase3/c05/validar_calidad.py
+      - name: Empaquetado del artefacto
+        uses: actions/upload-artifact@v4
+        with: { name: codigo_pipeline, path: fase3/c02 }
+
+  desplegar_dev:
+    name: "PR: despliegue a DEV y verificacion"
+    if: github.event_name == 'pull_request'
+    needs: validar
+    runs-on: [self-hosted, sb-poc]
+    environment: sb-dev
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ env.REF }}" }
+      - name: Desplegar job CDE (dev) y verificar ejecucion
+        env: { CONFIG_YAML: "${{ secrets.CONFIG_YAML }}" }
+        run: |
+          python -c "import os; open('config/config.yaml','w').write(os.environ['CONFIG_YAML'])"
+          python fase3/c05/desplegar_cde.py --ambiente dev --autor "${{ github.actor }}"
+
+  desplegar_test:
+    name: "CD: despliegue a TEST"
+    if: github.event_name != 'pull_request'
+    needs: validar
+    runs-on: [self-hosted, sb-poc]
+    environment: sb-test
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ env.REF }}" }
+      - name: Desplegar job CDE (test) y verificar
+        env: { CONFIG_YAML: "${{ secrets.CONFIG_YAML }}" }
+        run: |
+          python -c "import os; open('config/config.yaml','w').write(os.environ['CONFIG_YAML'])"
+          python fase3/c05/desplegar_cde.py --ambiente test --autor "${{ github.actor }}"
+
+  desplegar_prod:
+    name: "CD: despliegue a PROD (requiere aprobacion)"
+    needs: desplegar_test
+    runs-on: [self-hosted, sb-poc]
+    environment: sb-prod
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: "${{ env.REF }}" }
+      - name: Desplegar job CDE (prod) y verificar
+        env: { CONFIG_YAML: "${{ secrets.CONFIG_YAML }}" }
+        run: |
+          python -c "import os; open('config/config.yaml','w').write(os.environ['CONFIG_YAML'])"
+          python fase3/c05/desplegar_cde.py --ambiente prod --autor "${{ github.actor }}"
