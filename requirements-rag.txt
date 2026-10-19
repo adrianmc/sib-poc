@@ -1,0 +1,9 @@
+# Proyecto separado "sib-poc-rag" en Cloudera AI (solo C06-AE-07, asistente RAG).
+# Se aisla porque gradio y openai traen muchas dependencias que no deben tocar el proyecto principal.
+# Instalar con: ./instalar.sh rag
+pyyaml
+requests
+numpy
+pypdf
+openai
+gradio
