@@ -1,9 +1,0 @@
-{
-  "service": "__HIVE__", "name": "sb_08_mcp_solo_lectura", "policyType": 0, "isEnabled": true,
-  "description": "Identidad del servidor MCP restringido: SOLO select sobre consumible y clientes (con masking por tag)",
-  "resources": {"database": {"values": ["sb_consumption", "sb_curated"]},
-                "table": {"values": ["*"]}, "column": {"values": ["*"]}},
-  "policyItems": [
-    {"users": ["sb_mcp01"], "accesses": [{"type": "select", "isAllowed": true}]}
-  ]
-}
