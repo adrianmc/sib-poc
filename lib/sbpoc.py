@@ -1,5 +1,6 @@
-"""Utilidades comunes de la PoC SB: configuracion, Impala, Knox (Ranger/Atlas) y CDE."""
+"""Utilidades comunes de la PoC SIB: configuracion, Impala, Knox (Ranger/Atlas), CDE y Cloudera AI (API v2)."""
 from pathlib import Path
+import os
 import time
 import requests
 import yaml
@@ -8,7 +9,9 @@ RAIZ = Path(__file__).resolve().parents[1]
 
 
 def cfg():
-    with open(RAIZ / "config" / "config.yaml", encoding="utf-8") as f:
+    """Lee config/config.yaml. SBPOC_CONFIG permite apuntar a otro archivo (despliegues versionados de C05)."""
+    ruta = os.environ.get("SBPOC_CONFIG") or (RAIZ / "config" / "config.yaml")
+    with open(ruta, encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
@@ -69,3 +72,59 @@ def error_ci(mensaje):
         print(f"##vso[task.logissue type=error]{mensaje}")
     else:
         print(f"ERROR: {mensaje}")
+
+
+def atlas_guid(sesion, atlas, qualified_name, nivel="column"):
+    """Busca una tabla o columna en Atlas probando los tipos Iceberg y Hive.
+    En CDP 7.3.x las tablas Iceberg se registran como iceberg_table / iceberg_column;
+    las tablas externas y vistas, como hive_table / hive_column. Devuelve (guid, tipo) o (None, None)."""
+    for tipo in (f"iceberg_{nivel}", f"hive_{nivel}"):
+        r = sesion.get(f"{atlas}/entity/uniqueAttribute/type/{tipo}", params={"attr:qualifiedName": qualified_name})
+        if r.status_code == 200:
+            return r.json()["entity"]["guid"], tipo
+    return None, None
+
+
+
+# ---------------------------------------------------------------------------------------------
+# Cloudera AI (API v2 REST). Reemplaza a CDE como orquestador mientras CDE no este disponible.
+# Clave: Cloudera AI > User Settings > API Keys > Create API Key (API v2). Va en config cai.api_key.
+# ---------------------------------------------------------------------------------------------
+def cai_api():
+    """Devuelve (sesion, url_base_api, project_id)."""
+    c = cfg().get("cai", {})
+    url = (c.get("url") or ("https://" + os.environ.get("CDSW_DOMAIN", ""))).rstrip("/")
+    pid = c.get("project_id") or os.environ.get("CDSW_PROJECT_ID")
+    s = requests.Session()
+    s.headers.update({"Authorization": f"Bearer {c.get('api_key') or os.environ.get('CDSW_APIV2_KEY', '')}",
+                      "Content-Type": "application/json"})
+    return s, f"{url}/api/v2", pid
+
+
+def cai_job_id(nombre):
+    """Busca un job del proyecto por nombre exacto."""
+    import json
+    s, api, pid = cai_api()
+    r = s.get(f"{api}/projects/{pid}/jobs", params={"search_filter": json.dumps({"name": nombre})}, timeout=60)
+    r.raise_for_status()
+    for j in r.json().get("jobs", []):
+        if j["name"] == nombre:
+            return j["id"]
+    raise RuntimeError(f"No existe el job '{nombre}' en el proyecto {pid}")
+
+
+def cai_ejecutar_job(nombre, esperar=False, intervalo=20):
+    """Lanza un job de Cloudera AI. Con esperar=True devuelve el estado final (ENGINE_SUCCEEDED, ENGINE_FAILED...)."""
+    s, api, pid = cai_api()
+    jid = cai_job_id(nombre)
+    r = s.post(f"{api}/projects/{pid}/jobs/{jid}/runs", json={}, timeout=60)
+    r.raise_for_status()
+    run_id = r.json()["id"]
+    if not esperar:
+        return run_id, "LANZADO"
+    while True:
+        time.sleep(intervalo)
+        estado = s.get(f"{api}/projects/{pid}/jobs/{jid}/runs/{run_id}", timeout=60).json().get("status", "")
+        print("  estado:", estado)
+        if estado in ("ENGINE_SUCCEEDED", "ENGINE_FAILED", "ENGINE_STOPPED", "ENGINE_TIMEDOUT"):
+            return run_id, estado

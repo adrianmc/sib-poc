@@ -19,7 +19,7 @@ el orquestador solo los llama. Por eso el mismo flujo corre en Azure Pipelines s
 7. Dos usuarios GitHub: ejecutor (abre PR y hace merge) y aprobador (aprueba sb-prod). Ambos colaboradores del repo.
 8. Red del runner: sale a internet por el NAT de la VPC. Agregar la IP publica (Elastic IP) del NAT a la allowlist de
    los endpoints de CDW y CDE, y permitir salida HTTPS a github.com (el runner se conecta hacia GitHub, no al reves).
-9. En CDE (VC depto A): crear una vez el recurso `sb-drivers` con `mssql-jdbc.jar` (el despliegue lo monta).
+9. Sin CDE: crear los Jobs `sib-pipeline-dev/test/prod` en Cloudera AI y poner `cai.*` en CONFIG_YAML (ver `fase3/c02/LEEME_JOBS_CAI.md`).
 10. Prueba en seco antes de la demo: abrir un PR de prueba y verificar que los 4 jobs aparecen y que el runner los toma.
 
 ## Verificacion de la preparacion (checklist)
@@ -39,6 +39,6 @@ tablas. Si la SIB pide segregacion de datos (Pregunta 3), se parametriza la base
 | AE-01 | Rama `feature/ajuste-pipeline`: cambiar `c02_pipeline_batch.py`, `esquemas/contrato_datos.yaml` y `c04_capa_semantica.sql`; commit y push. Mostrar autor, fecha, diff |
 | AE-02 | PR a main: corre validacion, empaquetado (artefacto `codigo_pipeline`), despliegue a DEV y verificacion; check verde/rojo en el PR. Para rojo: `monto: double` en el contrato |
 | AE-03 | Merge: TEST se despliega; PROD queda "Waiting for review" hasta que apruebe el segundo usuario |
-| AE-04 | Aprobado: job `sb-pipeline-batch-prod` apunta a `sb-codigo-prod-<commit>`; fila en `sb_gov.despliegues` |
-| AE-05 | Actions > sb-cicd > Run workflow con `rollback_ref = v1.0.0`: el job vuelve al recurso inmutable de esa version; `sb_gov.despliegues` conserva ambas |
+| AE-04 | Aprobado: Job `sib-pipeline-prod` apunta a la version `<commit>` (worktree inmutable); fila en `sb_gov.despliegues` |
+| AE-05 | Actions > sb-cicd > Run workflow con `rollback_ref = v1.0.0`: el Job vuelve a esa version inmutable; `sb_gov.despliegues` conserva ambas |
 | AE-06 | `c05_versionado_datos.sql` |

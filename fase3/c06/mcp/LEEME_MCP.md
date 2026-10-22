@@ -19,5 +19,5 @@ Evidencia en Ranger > Audit filtrando por usuario `sb_mcp01`.
 **Declarar con honestidad:** (a) el servidor usa una identidad tecnica fija, no la del usuario final; por eso se
 demuestra con dos instancias. (b) `execute_query` tiene un filtro basico que solo acepta sentencias que inician con
 SELECT, SHOW, DESCRIBE o WITH; el propio codigo lo declara rudimentario. El control real es Ranger (sb_mcp01 solo tiene
-SELECT, politica sb_08). (d) `get_schema` lista solo las tablas de `IMPALA_DATABASE` (sb_consumption); el agente puede
+SELECT, rol de Ranger sb_mcp en la politica sb_02). (d) `get_schema` lista solo las tablas de `IMPALA_DATABASE` (sb_consumption); el agente puede
 consultar otras bases con nombre calificado si Ranger lo permite. (c) Es un proyecto open source de Cloudera, no un servicio GA con soporte.

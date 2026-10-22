@@ -2,7 +2,7 @@
 # SB PoC - Configuracion unica. Reemplazar TODOS los valores CAMBIAR_*
 # con los datos del ambiente desplegado en Fase 0 y Fase 1.
 # Contiene credenciales: NO subir al repositorio (.gitignore).
-# En Azure DevOps se usa el Variable Group "sb-poc-secretos".
+# En GitHub Actions se usa el secret de repositorio CONFIG_YAML.
 # =====================================================================
 s3:
   bucket: CAMBIAR_BUCKET                 # sin s3a:// (ej. sb-poc-data)
@@ -33,6 +33,7 @@ datalake:
   ranger_hive_service: cm_hive       # verificar nombre exacto en Ranger UI (Hadoop SQL)
   ranger_tag_service: cm_tag         # verificar nombre exacto en Ranger UI (TAG)
   ranger_trino_service: cm_trino     # servicio Ranger del Trino VW (verificar)
+  ranger_admins_extra: [user001]     # usuarios adicionales en el rol de Ranger sb_admin (ademas de usuarios.admin)
   atlas_sufijo_cluster: cm           # qualifiedName de Atlas termina en @cm en CDP
 
 cde:
@@ -66,6 +67,12 @@ entra:
   sharepoint_site_id: CAMBIAR
   sharepoint_list_id: CAMBIAR
   dataverse_url: https://CAMBIAR.crm.dynamics.com
+
+cai:
+  # Cloudera AI como orquestador (C02/C05) mientras CDE no este disponible
+  url: https://CAMBIAR_WORKSPACE_DOMAIN       # URL del workspace de Cloudera AI (sin /api)
+  api_key: CAMBIAR                             # User Settings > API Keys > API v2
+  project_id: CAMBIAR                          # Project Settings > Project ID (o echo $CDSW_PROJECT_ID en una sesion)
 
 apis:
   alphavantage_key: CAMBIAR      # clave gratuita en alphavantage.co/support (25 solicitudes/dia)

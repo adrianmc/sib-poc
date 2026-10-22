@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from lib.sbpoc import cfg, knox  # noqa: E402
+from lib.sbpoc import atlas_guid, cfg, knox  # noqa: E402
 
 TAGS = {
     "PII": "Dato personal identificable. Se enmascara salvo roles autorizados.",
@@ -35,10 +35,18 @@ def main():
     for tabla, cols in ASIGNACIONES.items():
         for col, tag in cols.items():
             qn = f"{tabla}.{col}@{sufijo}"
-            r = s.post(f"{atlas}/entity/uniqueAttribute/type/hive_column/classifications",
-                       params={"attr:qualifiedName": qn}, json=[{"typeName": tag, "propagate": True}])
-            estado = "OK" if r.status_code in (200, 204) else f"{r.status_code} {r.text[:120]}"
-            print(f"{qn} <- {tag}: {estado}")
+            guid, tipo = atlas_guid(s, atlas, qn, "column")
+            if not guid:
+                print(f"{qn} <- {tag}: NO ENCONTRADA en Atlas (ni iceberg_column ni hive_column)")
+                continue
+            r = s.post(f"{atlas}/entity/guid/{guid}/classifications", json=[{"typeName": tag, "propagate": True}])
+            if r.status_code in (200, 204):
+                estado = "OK"
+            elif "already" in r.text.lower() or r.status_code == 409:
+                estado = "OK (ya tenia el tag)"
+            else:
+                estado = f"{r.status_code} {r.text[:120]}"
+            print(f"{qn} [{tipo}] <- {tag}: {estado}")
     print("Ranger TagSync aplica las tags a las politicas en unos minutos.")
 
 

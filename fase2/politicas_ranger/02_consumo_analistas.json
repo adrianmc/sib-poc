@@ -1,9 +1,39 @@
 {
-  "service": "__HIVE__", "name": "sb_02_consumo_analistas", "policyType": 0, "isEnabled": true,
-  "description": "RBAC: analistas solo leen curada (clientes/creditos) y consumible",
-  "resources": {"database": {"values": ["sb_consumption", "sb_curated"]},
-                "table": {"values": ["*"]}, "column": {"values": ["*"]}},
+  "service": "__HIVE__",
+  "name": "sb_02_consumo_analistas",
+  "policyType": 0,
+  "isEnabled": true,
+  "description": "RBAC: analistas y la identidad del servidor MCP (sb_mcp) solo leen curada y consumible; masking y deny por tags aplican igual",
+  "resources": {
+    "database": {
+      "values": [
+        "sb_consumption",
+        "sb_curated"
+      ]
+    },
+    "table": {
+      "values": [
+        "*"
+      ]
+    },
+    "column": {
+      "values": [
+        "*"
+      ]
+    }
+  },
   "policyItems": [
-    {"groups": ["sb_analista"], "accesses": [{"type": "select", "isAllowed": true}]}
+    {
+      "groups": [
+        "sb_analista",
+        "sb_mcp"
+      ],
+      "accesses": [
+        {
+          "type": "select",
+          "isAllowed": true
+        }
+      ]
+    }
   ]
 }

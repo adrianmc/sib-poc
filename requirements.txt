@@ -1,4 +1,6 @@
-numpy
+# Proyecto principal "sib-poc" en Cloudera AI.
+# Instalar SIEMPRE con ./instalar.sh (usa las versiones del runtime como restriccion: no actualiza nada existente).
+# No agregar mlflow, protobuf, requests ni cml: vienen en el runtime y son parte de su integracion.
 pandas
 pyarrow
 fastavro
@@ -6,16 +8,10 @@ openpyxl
 reportlab
 pillow
 pyyaml
-requests
 impyla
 oracledb
-pyodbc
 boto3
 kafka-python
 scikit-learn
 joblib
 scipy
-pypdf
-openai
-gradio
-mlflow

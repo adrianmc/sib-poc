@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from lib.sbpoc import cfg, knox  # noqa: E402
+from lib.sbpoc import atlas_guid, cfg, knox  # noqa: E402
 
 S, ATLAS = knox("atlas")
 SUF = cfg()["datalake"]["atlas_sufijo_cluster"]
@@ -32,7 +32,7 @@ TIPOS = {"entityDefs": [
 ]}
 METADATA_NEGOCIO = {"businessMetadataDefs": [{"name": "Gobierno_SB", "description": "Metadata institucional de gobierno",
     "attributeDefs": [{"name": n, "typeName": "string", "isOptional": True, "cardinality": "SINGLE",
-                       "options": {"applicableEntityTypes": '["hive_table"]', "maxStrLength": "200"}}
+                       "options": {"applicableEntityTypes": '["hive_table", "iceberg_table"]', "maxStrLength": "200"}}
                       for n in ["dominio", "propietario_negocio", "custodio", "criticidad"]]}]}
 ACTIVOS_NEGOCIO = {
     "sb_curated.clientes": {"dominio": "Clientes", "propietario_negocio": "Direccion de Supervision",
@@ -45,9 +45,10 @@ ACTIVOS_NEGOCIO = {
 
 
 def guid_tabla(nombre):
-    r = S.get(f"{ATLAS}/entity/uniqueAttribute/type/hive_table", params={"attr:qualifiedName": f"{nombre}@{SUF}"})
-    r.raise_for_status()
-    return r.json()["entity"]["guid"]
+    guid, _ = atlas_guid(S, ATLAS, f"{nombre}@{SUF}", "table")
+    if not guid:
+        raise RuntimeError(f"Tabla no encontrada en Atlas: {nombre}@{SUF}")
+    return guid
 
 
 def crear(tipo, qn, nombre, extra=None):

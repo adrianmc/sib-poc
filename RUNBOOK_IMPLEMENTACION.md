@@ -36,17 +36,40 @@ Indice de etapas
 
 ## E0 - Preparar estaciones y configuracion
 
-**E0.1 Proyecto en Cloudera AI** (AI, consola web)
-Projects > New Project > nombre `sib-poc` > Git: URL del repo de GitHub (ver E10.1; si aun no existe, subir el zip).
-Runtime: Python 3.10+ (JupyterLab). Perfil 4 vCPU / 16 GB.
-Valida: el arbol del kit aparece en `/home/cdsw`.
+**E0.1 Subir el kit a GitHub** (laptop, una sola vez)
+1. GitHub > New repository: nombre `sib-poc`, **Public**, sin README > Create.
+   (Publico: el gate de aprobacion de C05 lo exige en plan Free. El repo no lleva secretos: `config.yaml` esta en .gitignore.)
+2. En la laptop, donde descargaste el zip:
+```
+unzip sb-poc-kit-fase2-fase3.zip
+cd sb-poc
+git init
+git add .
+git status                      # verificar que NO aparece config/config.yaml
+git commit -m "SIB PoC kit v1"
+git branch -M main
+git remote add origin https://github.com/adrianmc/sib-poc.git
+git push -u origin main
+git tag v1.0.0
+git push --tags
+```
+No subir el zip como archivo: se suben los archivos descomprimidos (los scripts deben verse en el repo).
 
-**E0.2 Dependencias** (AI)
+**E0.1b Proyecto en Cloudera AI desde Git** (consola web de Cloudera AI)
+Projects > New Project > nombre `sib-poc` > Initial Setup: **Git** > `https://github.com/adrianmc/sib-poc.git` > Create.
+New Session > Runtime Python 3.10+ (JupyterLab), perfil 4 vCPU / 16 GB > Start > Terminal: `ls`
+Valida: aparecen `README.md`, `config`, `fase2`, `fase3`, `lib` en `/home/cdsw`.
+Para traer cambios posteriores del repo: `git pull` en la Terminal.
+
+**E0.2 Dependencias** (AI, Terminal; primera sesion del proyecto recien creado)
 ```
 cd /home/cdsw
-pip install -r requirements.txt
+chmod +x instalar.sh
+./instalar.sh
 ```
-Valida: termina sin error. (pyodbc puede fallar por falta de driver de sistema: no importa, se usa 05b en CDE.)
+Valida: termina con "Instalacion OK" y muestra la version de mlflow del runtime. Si pip responde con un conflicto,
+no forzar nada: copiar el error y corregir el archivo de requisitos.
+(El script guarda las versiones del runtime y las usa como restriccion: nunca actualiza paquetes de Cloudera.)
 
 **E0.3 Configuracion** (AI)
 ```
@@ -386,20 +409,15 @@ Valida: cambio en Hue visible solo en PBI; analista01 ve hash y no ve confidenci
 | 4 | Models > New Model: archivo `fase3/c06/c06_ae05_modelo_endpoint.py`, funcion `predecir` | estado Deployed; prueba con el JSON de ejemplo | AE-05 |
 | 5 | `python fase3/c06/c06_ae05_prueba_endpoint.py --url <url_modelo> --clave <access_key> --n 500 --hilos 10` | p50/p95, errores y throughput | AE-05 |
 | 6 | Jobs > New Job: `fase3/c06/c06_ae06_drift.py`, argumentos `--simular`, notificacion por fallo al correo | job falla con "ALERTA DE DRIFT" y llega correo | AE-06 |
-| 7 | `mkdir -p /home/cdsw/data/documentos && hdfs dfs -get s3a://<bucket>/sb/landing/documentos/*.pdf /home/cdsw/data/documentos/` y `python fase3/c06/rag/indexar.py` | "Indice vectorial: N fragmentos" | PRE-05 |
-| 8 | Applications > New: `fase3/c06/rag/app.py` | 4 preguntas de ejemplo: cita, fuera de alcance, rechazo | AE-07 |
+| 7 | Proyecto aparte `sib-poc-rag` desde el mismo Git; copiar `config/config.yaml`; Terminal: `./instalar.sh rag`, `mkdir -p /home/cdsw/data/documentos && hdfs dfs -get s3a://<bucket>/sb/landing/documentos/*.pdf /home/cdsw/data/documentos/` y `python fase3/c06/rag/indexar.py` | "Indice vectorial: N fragmentos" | PRE-05 |
+| 8 | En `sib-poc-rag`: Applications > New: `fase3/c06/rag/app.py` | 4 preguntas de ejemplo: cita, fuera de alcance, rechazo | AE-07 |
 | 9 | LAP: `fase3/c06/mcp/LEEME_MCP.md` | agente responde sin SQL; restringido ve hash | AE-08/09, PRE-06 |
 Mostrar: proyecto compartido + Git para **C06-AE-02** (brecha declarada); modelo open source en AI Inference (**PRE-07**).
 
 ---
 
 ## E10 - C05 CI/CD (GitHub Actions)
-Seguir `fase3/c05/LEEME_CICD.md` pasos 1-10 y su checklist. Comandos clave (WIN o LAP):
-```
-git init && git add . && git commit -m "SIB PoC v1" && git branch -M main
-git remote add origin https://github.com/<org>/sib-poc.git && git push -u origin main
-git tag v1.0.0 && git push --tags
-```
+El repo ya existe (E0.1). Seguir `fase3/c05/LEEME_CICD.md` desde el paso 3 (secret, environments, reglas de rama, runner) y su checklist.
 Demo: rama `feature/ajuste-pipeline`, PR rojo (`monto: double` en el contrato) y verde, merge, aprobacion, rollback.
 Datos: `fase3/c05/c05_versionado_datos.sql` en HUE. Cubre: **C05-PRE-01..06, C05-AE-01..06**.
 

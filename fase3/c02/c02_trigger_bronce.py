@@ -1,7 +1,7 @@
 """
 C02-AE-04: ejecucion automatica al detectar actualizacion en la capa bronce (landing).
 Arquitectura: S3 Event Notification (ObjectCreated, prefijo sb/landing/transacciones/) -> SQS -> este proceso
--> API de CDE -> job Airflow "sb-orquestacion".
+-> API v2 de Cloudera AI -> Job "sib-pipeline" (c02_pipeline_sql.py). Con CDE disponible, el destino seria su API.
 Ejecutar como Application de Cloudera AI (larga duracion, visible en la demo):
   python fase3/c02/c02_trigger_bronce.py
 Prerrequisito (Fase 0/1): cola SQS + notificacion del bucket + permiso sqs:ReceiveMessage/DeleteMessage.
@@ -12,19 +12,19 @@ from datetime import datetime
 from pathlib import Path
 
 import boto3
-import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from lib.sbpoc import cfg, cde_token, cde_api  # noqa: E402
+from lib.sbpoc import cfg, cai_ejecutar_job  # noqa: E402
 
-JOB = "sb-orquestacion"
+JOB = "sib-pipeline"   # Job de Cloudera AI (antes: job Airflow de CDE)
 
 
 def disparar(motivo):
-    token = cde_token("ingeniero")
-    r = requests.post(f"{cde_api('a')}/jobs/{JOB}/run", headers={"Authorization": f"Bearer {token}"},
-                      json={}, timeout=60)
-    print(f"[{datetime.now():%H:%M:%S}] {motivo} -> run {JOB}: {r.status_code} {r.text[:200]}")
+    try:
+        run_id, estado = cai_ejecutar_job(JOB)
+        print(f"[{datetime.now():%H:%M:%S}] {motivo} -> job {JOB} lanzado (run {run_id})")
+    except Exception as e:  # noqa: BLE001
+        print(f"[{datetime.now():%H:%M:%S}] {motivo} -> ERROR al lanzar {JOB}: {e}")
 
 
 def main():

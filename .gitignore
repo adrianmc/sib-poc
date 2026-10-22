@@ -4,3 +4,5 @@ salida/
 __pycache__/
 *.joblib
 data/
+config/*.jks
+despliegues/

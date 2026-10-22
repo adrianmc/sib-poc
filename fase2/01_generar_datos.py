@@ -41,7 +41,9 @@ def fechas(rng, n, inicio, fin):
 def clientes(rng, n):
     nac = fechas(rng, n, "1950-01-01", "2006-12-31")
     alta = fechas(rng, n, "2010-01-01", "2026-06-30")
-    nombre = (rng.choice(NOMBRES, n) + " " + rng.choice(APELLIDOS, n) + " " + rng.choice(APELLIDOS, n))
+    # np.char.add funciona en numpy 1.x y 2.x (el operador + entre arreglos de texto solo existe en numpy 2)
+    nombre = np.char.add(np.char.add(np.char.add(np.char.add(
+        rng.choice(NOMBRES, n), " "), rng.choice(APELLIDOS, n)), " "), rng.choice(APELLIDOS, n))
     ids = np.arange(1, n + 1)
     return pd.DataFrame({
         "id_cliente": ids,

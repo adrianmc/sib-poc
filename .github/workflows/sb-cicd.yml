@@ -1,5 +1,6 @@
 # =====================================================================
-# C05: CI/CD de artefactos de datos con GitHub Actions hacia Cloudera (CDE + CDW).
+# C05: CI/CD de artefactos de datos con GitHub Actions hacia Cloudera (Cloudera AI Jobs + CDW).
+# (Con CDE disponible, cambiar desplegar_cai.py por desplegar_cde.py: mismos argumentos.)
 # PR -> validacion (esquema + calidad) + empaquetado + despliegue a DEV + verificacion (check visible en el PR).
 # Push a main -> TEST (verificado) -> gate de aprobacion manual (environment sb-prod) -> PROD (verificado).
 # Rollback: Actions > sb-cicd > Run workflow, con rollback_ref = tag estable (ej. v1.0.0).
@@ -62,7 +63,7 @@ jobs:
         env: { CONFIG_YAML: "${{ secrets.CONFIG_YAML }}" }
         run: |
           python -c "import os; open('config/config.yaml','w').write(os.environ['CONFIG_YAML'])"
-          python fase3/c05/desplegar_cde.py --ambiente dev --autor "${{ github.actor }}"
+          python fase3/c05/desplegar_cai.py --ambiente dev --version ${{ github.event.pull_request.head.sha }} --autor "${{ github.actor }}"
 
   desplegar_test:
     name: "CD: despliegue a TEST"
@@ -77,7 +78,7 @@ jobs:
         env: { CONFIG_YAML: "${{ secrets.CONFIG_YAML }}" }
         run: |
           python -c "import os; open('config/config.yaml','w').write(os.environ['CONFIG_YAML'])"
-          python fase3/c05/desplegar_cde.py --ambiente test --autor "${{ github.actor }}"
+          python fase3/c05/desplegar_cai.py --ambiente test --version $(git rev-parse --short=7 HEAD) --autor "${{ github.actor }}"
 
   desplegar_prod:
     name: "CD: despliegue a PROD (requiere aprobacion)"
@@ -91,4 +92,4 @@ jobs:
         env: { CONFIG_YAML: "${{ secrets.CONFIG_YAML }}" }
         run: |
           python -c "import os; open('config/config.yaml','w').write(os.environ['CONFIG_YAML'])"
-          python fase3/c05/desplegar_cde.py --ambiente prod --autor "${{ github.actor }}"
+          python fase3/c05/desplegar_cai.py --ambiente prod --version $(git rev-parse --short=7 HEAD) --autor "${{ github.actor }}"

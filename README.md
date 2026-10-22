@@ -1,6 +1,10 @@
 # SIB PoC - Kit de Fase 2 (datos y seguridad base) y Fase 3 (casos C01-C09)
 
-**Empieza aqui: `RUNBOOK_IMPLEMENTACION.md`** (paso a paso con comandos). Calendario: `PLAN_31_OCTUBRE.md`. Estado por item: `VALIDACION_ENTREGABLES.md`. Demo: `GUION_DEMO.md`.
+**Orden de lectura**
+1. `PLAN_31_OCTUBRE.md` (seccion Calendario): que toca hoy y quien lo hace.
+2. `RUNBOOK_IMPLEMENTACION.md`: como hacerlo, paso a paso, empezando por E0.1. Es el unico que se sigue al ejecutar.
+3. Solo de consulta: `VALIDACION_ENTREGABLES.md` (estado y brechas por item) y `GUION_DEMO.md` (para el dry-run del 29).
+El resto de archivos son los scripts que el runbook manda ejecutar.
 
 Kit para la Plantilla de Escenarios de Demostracion de la Superintendencia de Bancos sobre Cloudera on cloud (AWS).
 Todos los datos son **sinteticos**. Nada de este repositorio contiene datos reales.

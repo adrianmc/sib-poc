@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from lib.sbpoc import cfg, knox  # noqa: E402
+from lib.sbpoc import atlas_guid, cfg, knox  # noqa: E402
 
 TERMINOS = {
     "Indice de Morosidad": ("OFICIAL. Saldo con mas de 90 dias de atraso / saldo total de cartera. "
@@ -37,12 +37,10 @@ def main():
             print(f"Termino {nombre}: {r.status_code} {r.text[:120]}")
             continue
         tguid = r.json()["guid"]
-        ent = s.get(f"{atlas}/entity/uniqueAttribute/type/hive_column",
-                    params={"attr:qualifiedName": f"{columna}@{sufijo}"})
-        if ent.status_code != 200:
+        cguid, _ = atlas_guid(s, atlas, f"{columna}@{sufijo}", "column")
+        if not cguid:
             print(f"Columna no encontrada en Atlas: {columna} (esperar sincronizacion y reintentar)")
             continue
-        cguid = ent.json()["entity"]["guid"]
         r = s.post(f"{atlas}/glossary/terms/{tguid}/assignedEntities", json=[{"guid": cguid}])
         print(f"{nombre} -> {columna}: {r.status_code}")
 
