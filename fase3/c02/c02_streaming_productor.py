@@ -17,7 +17,11 @@ from pathlib import Path
 
 from kafka import KafkaProducer
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+# En Jobs de Cloudera AI (editor Workbench) el script corre en un kernel sin __file__: se usa la raiz del proyecto
+try:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+except NameError:
+    sys.path.insert(0, "/home/cdsw")
 from lib.sbpoc import cfg, consulta, RAIZ  # noqa: E402
 
 

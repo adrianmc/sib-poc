@@ -13,7 +13,11 @@ from pathlib import Path
 
 import requests
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+# En Jobs de Cloudera AI (editor Workbench) el script corre en un kernel sin __file__: se usa la raiz del proyecto
+try:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+except NameError:
+    sys.path.insert(0, "/home/cdsw")
 from lib.sbpoc import cde_api, cde_token, cfg, error_ci, impala, RAIZ  # noqa: E402
 
 ARCHIVOS = [RAIZ / "fase3" / "c02" / "c02_pipeline_batch.py"]

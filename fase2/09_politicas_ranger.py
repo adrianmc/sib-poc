@@ -18,10 +18,14 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from lib.sbpoc import cfg, knox  # noqa: E402
+# En Jobs de Cloudera AI (editor Workbench) el script corre en un kernel sin __file__: se usa la raiz del proyecto
+try:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+except NameError:
+    sys.path.insert(0, "/home/cdsw")
+from lib.sbpoc import RAIZ, cfg, knox  # noqa: E402
 
-DIR = Path(__file__).parent / "politicas_ranger"
+DIR = RAIZ / "fase2" / "politicas_ranger"
 
 # rol de Ranger -> claves de config.yaml (seccion usuarios) que son miembros
 ROLES = {

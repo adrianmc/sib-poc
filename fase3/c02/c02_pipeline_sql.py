@@ -25,7 +25,11 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+# En Jobs de Cloudera AI (editor Workbench) el script corre en un kernel sin __file__: se usa la raiz del proyecto
+try:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+except NameError:
+    sys.path.insert(0, "/home/cdsw")
 from lib.sbpoc import cfg, impala  # noqa: E402
 
 TABLAS_CONTROL = [

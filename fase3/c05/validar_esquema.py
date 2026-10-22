@@ -4,10 +4,14 @@ from pathlib import Path
 
 import yaml
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-from lib.sbpoc import consulta, error_ci  # noqa: E402
+# En Jobs de Cloudera AI (editor Workbench) el script corre en un kernel sin __file__: se usa la raiz del proyecto
+try:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+except NameError:
+    sys.path.insert(0, "/home/cdsw")
+from lib.sbpoc import RAIZ, consulta, error_ci  # noqa: E402
 
-contrato = yaml.safe_load(open(Path(__file__).parent / "esquemas" / "contrato_datos.yaml"))
+contrato = yaml.safe_load(open(RAIZ / "fase3" / "c05" / "esquemas" / "contrato_datos.yaml"))
 errores = 0
 for tabla, esperado in contrato.items():
     _, filas, _ = consulta(f"DESCRIBE {tabla}", rol="ingeniero")

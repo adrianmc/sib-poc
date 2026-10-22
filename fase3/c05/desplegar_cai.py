@@ -14,7 +14,11 @@ import subprocess
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+# En Jobs de Cloudera AI (editor Workbench) el script corre en un kernel sin __file__: se usa la raiz del proyecto
+try:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+except NameError:
+    sys.path.insert(0, "/home/cdsw")
 from lib.sbpoc import RAIZ, cai_api, cai_ejecutar_job, cai_job_id, error_ci, impala  # noqa: E402
 
 

@@ -11,7 +11,11 @@ from pathlib import Path
 
 import pandas as pd
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+# En Jobs de Cloudera AI (editor Workbench) el script corre en un kernel sin __file__: se usa la raiz del proyecto
+try:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+except NameError:
+    sys.path.insert(0, "/home/cdsw")
 from lib.sbpoc import cfg  # noqa: E402
 
 LOTE = 50_000
