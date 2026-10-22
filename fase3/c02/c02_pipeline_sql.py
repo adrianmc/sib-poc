@@ -30,7 +30,7 @@ try:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 except NameError:
     sys.path.insert(0, "/home/cdsw")
-from lib.sbpoc import cfg, impala  # noqa: E402
+from lib.sbpoc import cfg, impala, leer_argumentos  # noqa: E402
 
 TABLAS_CONTROL = [
     """CREATE TABLE IF NOT EXISTS sb_consumption.pipeline_pasos (
@@ -148,7 +148,7 @@ def main():
     ap.add_argument("--reintentos", type=int, default=3)
     ap.add_argument("--espera", type=int, default=60, help="segundos entre reintentos")
     ap.add_argument("--desde-paso", type=int, default=1)
-    a = ap.parse_args()
+    a = leer_argumentos(ap)
 
     bucket = cfg()["s3"]["bucket"]
     run_id, inicio = str(uuid.uuid4()), datetime.utcnow()

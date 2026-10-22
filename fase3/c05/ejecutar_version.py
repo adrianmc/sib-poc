@@ -15,10 +15,19 @@ from pathlib import Path
 
 RAIZ = Path("/home/cdsw")
 
+def _leer_argumentos(parser):
+    """En Jobs de Cloudera AI los argumentos llegan en JOB_ARGUMENTS (el script corre en un kernel)."""
+    import os
+    import shlex
+    if os.environ.get("JOB_ARGUMENTS") is not None:
+        return parser.parse_known_args(shlex.split(os.environ["JOB_ARGUMENTS"]))[0]
+    return parser.parse_known_args([x for x in sys.argv[1:] if not x.endswith(".json") and x != "-f"])[0]
+
+
 ap = argparse.ArgumentParser()
 ap.add_argument("--ref", required=True, help="commit o tag a ejecutar")
 ap.add_argument("--ambiente", required=True, choices=["dev", "test", "prod"])
-a = ap.parse_args()
+a = _leer_argumentos(ap)
 
 destino = RAIZ / "despliegues" / a.ambiente / a.ref
 if not destino.exists():
@@ -29,6 +38,7 @@ else:
     print(f"Version {a.ref} ya existe en {destino}; se reutiliza sin cambios")
 
 entorno = dict(os.environ, SBPOC_CONFIG=str(RAIZ / "config" / "config.yaml"))
+entorno.pop("JOB_ARGUMENTS", None)   # el pipeline hijo recibe sus argumentos por linea de comandos
 r = subprocess.run([sys.executable, str(destino / "fase3" / "c02" / "c02_pipeline_sql.py"),
                     "--version", a.ref, "--ambiente", a.ambiente], env=entorno)
 sys.exit(r.returncode)

@@ -128,3 +128,20 @@ def cai_ejecutar_job(nombre, esperar=False, intervalo=20):
         print("  estado:", estado)
         if estado in ("ENGINE_SUCCEEDED", "ENGINE_FAILED", "ENGINE_STOPPED", "ENGINE_TIMEDOUT"):
             return run_id, estado
+
+
+def leer_argumentos(parser):
+    """Parsea argumentos tanto en linea de comandos como en Jobs de Cloudera AI.
+    En un Job el script corre dentro de un kernel: sys.argv trae parametros del kernel (-f ...json) y los
+    argumentos del Job llegan en la variable de entorno JOB_ARGUMENTS."""
+    import os
+    import shlex
+    import sys
+    if os.environ.get("JOB_ARGUMENTS") is not None:
+        args = shlex.split(os.environ["JOB_ARGUMENTS"])
+    elif any("ipykernel" in a or a.endswith(".json") for a in sys.argv):
+        args = []
+    else:
+        args = sys.argv[1:]
+    conocidos, _ = parser.parse_known_args(args)
+    return conocidos

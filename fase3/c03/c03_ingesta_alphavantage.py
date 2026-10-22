@@ -33,7 +33,7 @@ try:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 except NameError:
     sys.path.insert(0, "/home/cdsw")
-from lib.sbpoc import cfg, impala, RAIZ  # noqa: E402
+from lib.sbpoc import cfg, impala, leer_argumentos, RAIZ  # noqa: E402
 
 URL = "https://www.alphavantage.co/query"
 FUENTES = {
@@ -86,7 +86,7 @@ def main():
     ap.add_argument("--solo", choices=list(FUENTES))
     ap.add_argument("--desde-cache", action="store_true")
     ap.add_argument("--sin-clave", action="store_true")
-    a = ap.parse_args()
+    a = leer_argumentos(ap)
     clave = "" if a.sin_clave else cfg().get("apis", {}).get("alphavantage_key", "")
     con = impala("ingeniero")
     cur = con.cursor()

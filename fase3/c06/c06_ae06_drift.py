@@ -23,9 +23,18 @@ def psi(ref, act, bins=10):
     return float(np.sum((a - r) * np.log(a / r)))
 
 
+def _leer_argumentos(parser):
+    """En Jobs de Cloudera AI los argumentos llegan en JOB_ARGUMENTS (el script corre en un kernel)."""
+    import os
+    import shlex
+    if os.environ.get("JOB_ARGUMENTS") is not None:
+        return parser.parse_known_args(shlex.split(os.environ["JOB_ARGUMENTS"]))[0]
+    return parser.parse_known_args([x for x in sys.argv[1:] if not x.endswith(".json") and x != "-f"])[0]
+
+
 ap = argparse.ArgumentParser()
 ap.add_argument("--simular", action="store_true")
-a = ap.parse_args()
+a = _leer_argumentos(ap)
 ref = pd.read_csv("/home/cdsw/data/referencia_drift.csv")
 act = pd.read_csv("/home/cdsw/data/features_creditos.csv").sample(frac=0.3, random_state=7)
 if a.simular:
