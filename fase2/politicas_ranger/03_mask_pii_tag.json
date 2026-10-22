@@ -1,11 +1,46 @@
 {
-  "service": "__TAG__", "name": "sb_03_mask_pii", "policyType": 1, "isEnabled": true,
-  "description": "ABAC por atributo del dato: toda columna con tag PII se enmascara con hash (deterministico, permite JOIN)",
-  "resources": {"tag": {"values": ["PII"]}},
+  "service": "__TAG__",
+  "name": "sb_03_mask_pii",
+  "policyType": 1,
+  "isEnabled": true,
+  "description": "ABAC por atributo del dato: toda columna con tag PII se enmascara con hash (deterministico, permite JOIN). Sin mascara: admin, auditor e ingeniero (identidad del ETL: Impala no permite escribir en tablas con mascara activa para quien escribe)",
+  "resources": {
+    "tag": {
+      "values": [
+        "PII"
+      ]
+    }
+  },
   "dataMaskPolicyItems": [
-    {"groups": ["sb_admin", "sb_auditor"], "accesses": [{"type": "hive:select", "isAllowed": true}],
-     "dataMaskInfo": {"dataMaskType": "hive:MASK_NONE"}},
-    {"groups": ["public"], "accesses": [{"type": "hive:select", "isAllowed": true}],
-     "dataMaskInfo": {"dataMaskType": "hive:MASK_HASH"}}
+    {
+      "groups": [
+        "sb_admin",
+        "sb_auditor",
+        "sb_ingeniero"
+      ],
+      "accesses": [
+        {
+          "type": "hive:select",
+          "isAllowed": true
+        }
+      ],
+      "dataMaskInfo": {
+        "dataMaskType": "hive:MASK_NONE"
+      }
+    },
+    {
+      "groups": [
+        "public"
+      ],
+      "accesses": [
+        {
+          "type": "hive:select",
+          "isAllowed": true
+        }
+      ],
+      "dataMaskInfo": {
+        "dataMaskType": "hive:MASK_HASH"
+      }
+    }
   ]
 }
