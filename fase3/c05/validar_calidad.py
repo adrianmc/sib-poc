@@ -28,4 +28,5 @@ for nombre, (sql, regla) in REGLAS.items():
     print(f"[{'OK' if ok else 'FALLA'}] {nombre}: {valor} ({ms:.0f} ms)")
     if not ok:
         error_ci(f"Regla de calidad fallida: {nombre}")
-sys.exit(1 if fallas else 0)
+if fallas:          # en Jobs (kernel) no se llama sys.exit(0): Cloudera AI lo trataria como fallo
+    sys.exit(1)

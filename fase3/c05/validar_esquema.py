@@ -21,4 +21,5 @@ for tabla, esperado in contrato.items():
             error_ci(f"{tabla}.{col}: esperado {tipo}, encontrado {real.get(col)}")
             errores += 1
     print(f"{tabla}: {'OK' if not errores else 'DIFERENCIAS'}")
-sys.exit(1 if errores else 0)
+if errores:
+    sys.exit(1)

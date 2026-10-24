@@ -41,4 +41,5 @@ entorno = dict(os.environ, SBPOC_CONFIG=str(RAIZ / "config" / "config.yaml"))
 entorno.pop("JOB_ARGUMENTS", None)   # el pipeline hijo recibe sus argumentos por linea de comandos
 r = subprocess.run([sys.executable, str(destino / "fase3" / "c02" / "c02_pipeline_sql.py"),
                     "--version", a.ref, "--ambiente", a.ambiente], env=entorno)
-sys.exit(r.returncode)
+if r.returncode:     # solo salir con error; sys.exit(0) en un Job se reporta como fallo
+    sys.exit(r.returncode)
