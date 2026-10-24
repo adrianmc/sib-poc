@@ -21,10 +21,10 @@ Convencion: **Herramienta** indica donde se ejecuta. "Evidencia" es lo que se an
 |---|---|---|---|---|
 | AE-01 | NiFi + Hue | Copiar CSV, JSON, XLSX y PDF al buzon; NiFi los aterriza en la capa cruda (Provenance); consultar `sb_raw.*` | `c01_ae01_nifi_ingesta.md` (flujo A) | Nativo |
 | AE-02 | Hue + CML | Misma consulta en Impala y en notebook (impyla y Spark) | `c01_ae02_*` | Nativo; una sola ubicacion fisica |
-| PG-10 / plus | Hue (Trino) | Oracle vivo + Iceberg en una consulta; ETL NiFi SQL Server -> `sb_raw.creditos_nifi` | `c01_federacion_trino.sql`, flujo B NiFi | Nativo (Trino: confirmar madurez) |
+| PG-10 / plus | Hue (Trino) | SQL Server vivo + Iceberg en una consulta; ETL NiFi SQL Server -> `sb_raw.creditos_nifi` | `c01_federacion_trino.sql`, flujo B NiFi | Nativo; conector SQL Server de Trino comunitario (declarar) |
 | AE-03 | Hue | INSERT/UPDATE/DELETE/MERGE desde CSV, Avro, Parquet | `c01_ae03_*.sql` | Nativo (Iceberg V2) |
 | AE-04 | Hue | ADD COLUMNS + rename, consultas sin error | `c01_ae04_*.sql` | Nativo |
-| AE-05 | SQL Developer + Hue | Cambios en Oracle -> solo esos registros en curada | `cdc/*` | Componentes nativos, ensamblaje con desarrollo |
+| AE-05 | SSMS + Hue | Cambios en SQL Server -> solo esos registros en curada | `cdc/*` | Componentes nativos, ensamblaje con desarrollo |
 | AE-06 | Laptop externa | PyIceberg via REST Catalog (plan B: DuckDB directo a S3) | `c01_ae06_*.py` | Nativo (runtime 7.3.2) |
 | AE-07 | Hue + Atlas | DESCRIBE HISTORY/FILES/PARTITIONS, Atlas | `c01_ae07_*.sql` | Nativo |
 | AE-08 | Terminal | CDP CLI + CDE API + Atlas/Ranger REST | `c03_apis_y_diagramas.md` | Nativo |

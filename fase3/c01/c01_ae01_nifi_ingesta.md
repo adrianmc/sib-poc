@@ -12,7 +12,7 @@ Si ya tienes un flujo NiFi -> PostgreSQL funcionando, se reutiliza cambiando sol
 | sb-kerberos | KerberosPasswordUserService | Principal `sb_ing01@<REALM del ambiente>` (V); password = workload password |
 | sb-aws | AWSCredentialsProviderControllerService | Credenciales segun el mecanismo del Data Hub (IDBroker) (V) |
 | sb-hive-catalog | HiveCatalogService | Metastore URI y `hive-site.xml`/`core-site.xml` del Data Hub (V) |
-| sb-sqlserver | DBCPConnectionPool | URL `jdbc:sqlserver://CAMBIAR_RDS_SQLSERVER:1433;databaseName=sbcreditos;encrypt=false`; driver `com.microsoft.sqlserver.jdbc.SQLServerDriver`; Driver Location: `mssql-jdbc.jar` copiado a todos los nodos NiFi (V) |
+| sb-sqlserver | DBCPConnectionPool | URL `jdbc:sqlserver://CAMBIAR_SQLSERVER_IP_PRIVADA:1433;databaseName=sbcore;encrypt=false`; driver `com.microsoft.sqlserver.jdbc.SQLServerDriver`; Driver Location: `mssql-jdbc.jar` copiado a todos los nodos NiFi (V) |
 | sb-csv-reader / sb-json-reader | CSVReader / JsonTreeReader | Inferir esquema; CSV con cabecera |
 | sb-avro-reader / sb-avro-writer | AvroReader / AvroRecordSetWriter | Esquema embebido |
 

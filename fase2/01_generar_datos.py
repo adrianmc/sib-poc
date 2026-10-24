@@ -2,8 +2,8 @@
 FASE 2 - Paso 01: Generador de datos sinteticos bancarios (100% ficticios).
 
 Genera en ./salida/:
-  rds/clientes.csv, rds/cuentas.csv            -> cargar a RDS Oracle (core bancario)
-  rds/creditos.csv                              -> cargar a RDS SQL Server
+  rds/clientes.csv, rds/cuentas.csv            -> cargar a SQL Server (base origen sbcore)
+  rds/creditos.csv                              -> cargar a SQL Server (base origen sbcore)
   landing/transacciones/{csv,json,avro,parquet} -> muestra multiformato (PG-07)
   landing/maestras/entidades_financieras.csv
   landing/maestras/catalogo_productos.xlsx (+ .csv)

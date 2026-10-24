@@ -42,9 +42,8 @@ cde:
   jobs_api_depto_a: https://CAMBIAR_VC_A_HOST/dex/api/v1
   jobs_api_depto_b: https://CAMBIAR_VC_B_HOST/dex/api/v1
 
-rds:
-  oracle:    {host: CAMBIAR_RDS_ORACLE, port: 1521, service: ORCL, user: SBCORE, password: CAMBIAR}
-  sqlserver: {host: CAMBIAR_RDS_SQLSERVER, port: 1433, database: sbcreditos, user: CAMBIAR, password: CAMBIAR}
+# Base origen del cliente: SQL Server 2022 Developer en la EC2 Windows (misma VPC del ambiente). IP PRIVADA de la EC2.
+sqlserver: {host: CAMBIAR_SQLSERVER_IP_PRIVADA, port: 1433, database: sbcore, user: sbcore_app, password: CAMBIAR}
 
 kafka:
   brokers: CAMBIAR_BROKER1:9093,CAMBIAR_BROKER2:9093,CAMBIAR_BROKER3:9093

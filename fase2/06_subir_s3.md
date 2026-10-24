@@ -21,4 +21,4 @@ Nota para la demo C01-AE-01: la conversión Excel a tabla se muestra en vivo con
 (ListS3 -> FetchS3Object -> ConvertExcelToCSVProcessor -> PutS3Object en `sb/landing/maestras/productos/`).
 El `.csv` que se sube aquí es el respaldo por si el flujo no está listo.
 
-Luego ejecutar en CDE los jobs `05b_cargar_rds_spark.py` (carga RDS) y `02_transacciones_masivas_spark.py` (volumen 20-50M).
+Luego cargar la base origen con `python fase2/05_cargar_sqlserver.py` (SQL Server en EC2). El masivo ya se genero con Impala (07b).

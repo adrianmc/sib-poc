@@ -2,8 +2,8 @@
 C02-PRE-03 / AE-01 / AE-05 / AE-06 (version Cloudera AI, sin CDE):
 pipeline batch de 4 pasos verificables ejecutado en CDW (Impala) y orquestado como Job de Cloudera AI.
 
-Fuentes (3+): transacciones multiformato en S3 (CSV, Avro, Parquet, Parquet masivo), clientes/cuentas (core Oracle)
-y creditos (SQL Server), estos dos aterrizados en la capa cruda; mas la maestra de entidades.
+Fuentes (3+): transacciones multiformato en S3 (CSV, Avro, Parquet, Parquet masivo), clientes/cuentas y creditos
+(base origen SQL Server), aterrizados en la capa cruda; mas la maestra de entidades.
 Pasos:
   1 limpieza y tipado de clientes, cuentas y creditos
   2 union de 4 formatos + deduplicacion con ROW_NUMBER (staging)

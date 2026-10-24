@@ -57,7 +57,7 @@ def main():
                 r.raise_for_status()
         print("Recurso", recurso, "creado con", [f.name for f in ARCHIVOS])
 
-    rds = c["rds"]["sqlserver"]
+    rds = c["sqlserver"]
     cuerpo = {
         "name": job, "type": "spark",
         "mounts": [{"resourceName": recurso}, {"resourceName": "sb-drivers"}],   # sb-drivers: mssql-jdbc.jar

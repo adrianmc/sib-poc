@@ -1,7 +1,7 @@
 {
   "service": "__TRINO__", "name": "sb_10_trino_acceso_catalogos", "policyType": 0, "isEnabled": true,
-  "description": "Trino (cm_trino): acceso por rol al catalogo federado Oracle y al lakehouse. Para recursos Hive/Iceberg tambien deben existir las politicas de cm_hive (fase2 01/02)",
-  "resources": {"catalog": {"values": ["oracle_core", "iceberg"]}, "schema": {"values": ["*"]},
+  "description": "Trino (cm_trino): acceso por rol al catalogo federado SQL Server y al lakehouse. Para recursos Hive/Iceberg tambien deben existir las politicas de cm_hive (fase2 01/02)",
+  "resources": {"catalog": {"values": ["sqlserver_core", "iceberg"]}, "schema": {"values": ["*"]},
                 "table": {"values": ["*"]}, "column": {"values": ["*"]}},
   "policyItems": [
     {"groups": ["sb_admin", "sb_ingeniero", "sb_analista", "sb_cientifico", "sb_auditor"],

@@ -23,7 +23,7 @@ Fecha de revision: 2026-10-05. Base: criterios de exito de la plantilla (PG, C01
 | PG-07 | CSV/Excel/JSON/Parquet/PDF/PNG/Iceberg/Delta/Avro | fase2/01, 07 | PARCIAL | Delta: NO SE PUEDE nativo. Todo lo demas OK |
 | PG-08 | Usuarios por rol (admin, ingeniero, cientifico, analista, auditor) | fase2/10 | OK | - |
 | PG-09 | Permisos por rol y atributo | politicas 01-08 | OK | - |
-| PG-10 | Clientes SQL Server, Oracle, Power BI y notebook al mismo entorno | RDS (CDC/JDBC/NiFi) + Trino federado + PBI + Cloudera AI | OK | Definido: son bases origen. Plus: consulta federada Oracle + Iceberg (`c01_federacion_trino.sql`). Oracle con conector certificado; SQL Server via Trino solo comunitario (declarar) |
+| PG-10 | Clientes SQL Server, Oracle, Power BI y notebook al mismo entorno | SQL Server en EC2 (CDC/NiFi) + Trino federado + PBI + Cloudera AI | PARCIAL | Decision 23 oct: sin Oracle en la PoC. SQL Server, Power BI y notebooks se demuestran; Oracle se declara (JDBC estandar y conector Trino certificado por Cloudera), no se demuestra. Plus: SQL Server vivo + Iceberg en Trino (conector comunitario, declarar) |
 | PG-11 | Definicion dev/test/prod y dominios/equipos | diagrama + jobs y politicas por ambiente | OK | Fisica o logica, declarado; demo logica |
 | PG-12 | Directorio de scripts | repositorio | OK | - |
 | PG-13 | Evidencia documental oficial | - | PENDIENTE | Lista de enlaces oficiales (docs, SLA, casos). No se inventan URLs: armar con fuentes vigentes |
@@ -60,7 +60,7 @@ Fecha de revision: 2026-10-05. Base: criterios de exito de la plantilla (PG, C01
 | AE-04 trigger por capa bronce | c02_trigger_bronce | OK workaround | S3 event + SQS + API CDE |
 | AE-05 fallo visible con mensaje accionable | marcador S3 | OK | - |
 | AE-06 sin perdida ni duplicados | overwritePartitions + retries + validar_calidad | OK | - |
-| AE-07 ad-hoc sin materializar | c02_latencia_y_adhoc + c01_federacion_trino | OK | Plus: consulta sobre Oracle vivo sin copia (EXPLAIN muestra scan remoto) |
+| AE-07 ad-hoc sin materializar | c02_latencia_y_adhoc + c01_federacion_trino | OK | Plus: consulta sobre SQL Server vivo sin copia (EXPLAIN muestra scan remoto) |
 | AE-08 GPU asignar/escalar/apagar, costo | c06_gpu + perfil GPU | OK | Costo por tags AWS, no dentro de Cloudera AI |
 | AE-09 tenant A no impacta B | prueba_carga --sonda-depto | OK (agregado) | No existia la medicion en B |
 | AE-10 PPT por cada 50 usuarios | resultados CSV | PENDIENTE | Niveles por defecto saltan de 50 a 100, 200...: para "cada 50" usar `--niveles 50,100,150,...,500` |
@@ -138,7 +138,7 @@ Fecha de revision: 2026-10-05. Base: criterios de exito de la plantilla (PG, C01
 | PRE-02 variedad de activos | c08_registro | OK workaround | Dashboard, agente y documentos como entidades custom |
 | PRE-03..05 | kit | OK | - |
 | AE-01 sincronizar con catalogo institucional | Atlas | PARCIAL | Atlas es el "mecanismo compatible"; hacia IDMC lo hace el escaner de Informatica |
-| AE-02 linaje fuente -> consumo | Atlas + c08 (corregido) | OK workaround | Se agrego el tramo Oracle/SQL Server -> curada. Tramo BI por registro API |
+| AE-02 linaje fuente -> consumo | Atlas + c08 (corregido) | OK workaround | Se agrego el tramo SQL Server -> curada. Tramo BI por registro API |
 | AE-03 cambio en fuente e impacto | c08_impacto | PARCIAL | Atlas muestra downstream; sin reporte de impacto proactivo |
 | AE-04 logs de acceso | Ranger Audit | OK | - |
 | AE-05 inmutabilidad de logs | c08_auditoria (rediseñado) | OK via AWS | Replica a bucket WORM, sin tocar el bucket de CDP |
@@ -164,7 +164,7 @@ Fecha de revision: 2026-10-05. Base: criterios de exito de la plantilla (PG, C01
 1. **PG-06**: 30M en Parquet (cruda) e Iceberg (curada, Parquet por debajo). Los demas formatos (CSV, JSON, Avro, Excel,
    PDF, PNG) se presentan en volumen de muestra para ingesta e interoperabilidad. Justificacion: en analitica los formatos
    columnares (Parquet/Iceberg) son los recomendados por rendimiento; el propio PG-06 dice "de acuerdo al tipo de archivo".
-2. **PG-10**: bases origen del cliente (RDS Oracle y SQL Server).
+2. **PG-10**: base origen del cliente: SQL Server en EC2 (Oracle fuera de alcance desde el 23 oct, se declara).
 3. **PG-11 / C05 / C07-AE-04**: se declara que la segregacion puede ser fisica (ambientes CDP separados) o logica
    (bases, jobs y politicas por ambiente). En la demo se muestra la logica; la fisica en diagrama.
 4. **C03-AE-02**: Alpha Vantage. C03-AE-04/05 documental.
@@ -182,7 +182,7 @@ Fecha de revision: 2026-10-05. Base: criterios de exito de la plantilla (PG, C01
 ## Nuevos riesgos registrados (2026-10-07)
 - **Trino**: madurez a confirmar en la version de CDW desplegada (columna Estado de madurez). Servicio Ranger `cm_trino`
   con postura por defecto permisiva: endurecer antes de la demo. Las tags de Atlas no aplican a catalogos federados:
-  el masking sobre Oracle es por recurso (politica sb_11). Para tablas Iceberg via Trino se requieren politicas en
+  el masking sobre SQL Server federado es por recurso (politica sb_11). Para tablas Iceberg via Trino se requieren politicas en
   cm_trino y en cm_hive (doble auditoria).
 - **NiFi**: propiedades de Kerberos/IDBroker/HiveCatalog dependen del Data Hub; se confirman en el ensayo.
 - **C05 (2026-10-07)**: la necesidad institucional menciona Azure DevOps. La demo usa GitHub Actions; declarar que la

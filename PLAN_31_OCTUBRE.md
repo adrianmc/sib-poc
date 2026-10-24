@@ -17,7 +17,7 @@ C06-AE-01/03/04/05/07/08/09 · C07-AE-01..05 · C08-AE-02/03/04/05/06/08 · C03-
 **Nivel 2 - Por defecto se MUESTRA; se construye solo si sobra tiempo** (dias 28-31). Excepcion: CDC, que es Nivel 1 con timebox
 | Item | Limite | Si no sale |
 |---|---|---|
-| C01-AE-05 CDC Oracle (Debezium/LogMiner) - **se construye** | hasta jue 22 12:00 | CDC sobre SQL Server (Debezium SQL Server es mas simple; se adapta el job) |
+| C01-AE-05 CDC SQL Server (Debezium) - **se construye** | 1 dia tras montar la EC2 (sab 24) | Se muestra la captura nativa de SQL Server (tablas cdc.*) y el conector; MERGE documentado |
 | C01-AE-01 flujo NiFi A | 4 h | Carga a S3 + tablas externas (cumple "sin conversion propietaria") |
 | C01-AE-06 / C08-AE-07 REST Catalog + Data Sharing (Data Catalog) | 3 h | Plan B: DuckDB/PyIceberg leyendo metadatos Iceberg en S3 (AE-06); externo via JDBC con politica temporal (AE-07) |
 | C02-AE-03 streaming bajo carga | 3 h | Se muestra SQL y batch; streaming documental |
@@ -51,8 +51,8 @@ criterio exige observar un resultado (dato cambiado, acceso negado, latencia med
 |---|---|---|---|---|
 | 1 | lun 19 tarde | E1: Keycloak, primer login de los 9 usuarios, workload passwords, roles, sync FreeIPA | E0: proyecto en Cloudera AI, config.yaml, certificado Kafka, CLI y recursos CDE | |
 | 2 | mar 20 | E2.1 DDL en RDS (WIN). Tarde: E3.1 DDL lakehouse, E3.2 tags, E3.3 politicas | E2.2 generar datos, E2.3 subir a S3, E2.4 carga RDS, E2.5 masivo 30M | **Gate 1** (E4 al cierre) |
-| 3 | mie 21 | E5.2 carga puente clientes/cuentas. E6.1-E6.3 pipeline, Airflow, fallo y recuperacion | E5.1 CDC Oracle (timebox inicia) | |
-| 4 | jue 22 | E7 seguridad. E8 capa semantica y glosario | E5.1 CDC (cierra 12:00 o plan B SQL Server). E5.3 operaciones lakehouse. E6.5 streaming | |
+| 3 | mie 21 | E5.2 carga puente clientes/cuentas. E6.1-E6.3 pipeline, Airflow, fallo y recuperacion | E5.1 CDC (timebox inicia) | |
+| 4 | jue 22 | E7 seguridad. E8 capa semantica y glosario | E5.1 CDC. E5.3 operaciones lakehouse. E6.5 streaming | |
 | 5 | vie 23 | E8 Power BI completo. E5.4 misma consulta en dos interfaces | E6.6 pruebas de carga (corren solas) + E6.4 trigger SQS | **Gate 2** |
 | 6 | lun 26 | E10 CI/CD GitHub completo | E9 pasos 1-5 (enmascarado, Python, R, registro, endpoint) | |
 | 7 | mar 27 | E11 gobernanza (linaje, impacto, corrupcion, WORM, solicitud de acceso) | E9 pasos 6-9 (drift, RAG, MCP) | |

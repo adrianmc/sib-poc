@@ -1,3 +1,5 @@
+> Nota 23 oct: Oracle salio del alcance. La base origen es SQL Server 2022 en EC2 (ver RUNBOOK E2 y E5.1). Las menciones a Oracle de este documento historico ya no aplican.
+
 # Plan de validacion y tiempos de entrega - PoC SIB
 
 > **Calendario vigente: `PLAN_31_OCTUBRE.md`** (entrega 31 de octubre). Este archivo conserva el detalle de pasos y criterios de salida de cada bloque.

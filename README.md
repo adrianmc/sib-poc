@@ -3,7 +3,8 @@
 **Orden de lectura**
 1. `PLAN_31_OCTUBRE.md` (seccion Calendario): que toca hoy y quien lo hace.
 2. `RUNBOOK_IMPLEMENTACION.md`: como hacerlo, paso a paso, empezando por E0.1. Es el unico que se sigue al ejecutar.
-3. Solo de consulta: `VALIDACION_ENTREGABLES.md` (estado y brechas por item) y `GUION_DEMO.md` (para el dry-run del 29).
+3. Dia de la demo: `GUION_DIA_DEMO.md` (operativo, se completa por bloque validado).
+4. Solo de consulta: `VALIDACION_ENTREGABLES.md` (estado y brechas por item) y `GUION_DEMO.md` (para el dry-run del 29).
 El resto de archivos son los scripts que el runbook manda ejecutar.
 
 Kit para la Plantilla de Escenarios de Demostracion de la Superintendencia de Bancos sobre Cloudera on cloud (AWS).
@@ -15,15 +16,15 @@ Todos los datos son **sinteticos**. Nada de este repositorio contiene datos real
 - [ ] Keycloak (IdP SAML del ambiente demo) con usuarios y grupos de `fase2/10_usuarios_y_grupos.md`; sincronizacion de grupos al login activa en CDP
 - [ ] Data Hub **Streams Messaging** (Kafka + Kafka Connect/Debezium + SMM) y Data Hub **Flow Management** (NiFi)
 - [ ] CDW (ultima version): Database Catalog, VW Impala `impala-depto-a` y `impala-depto-b` con autoscaling (ver seccion 6), **VW Hive** (tabla JSON), Hue
-- [ ] CDW: **Trino VW `trino-sb`** (auto-suspend OFF, minimo 1 worker), secreto registrado en el ambiente y Federation Connector certificado Oracle `oracle_core` asociado al VW
+- [ ] CDW: **Trino VW `trino-sb`** (auto-suspend OFF, minimo 1 worker), secreto registrado en el ambiente y catalogo SQL Server `sqlserver_core` (conector comunitario de Trino, declarado) asociado al VW
 - [ ] NiFi (Flow Management): `mssql-jdbc.jar` copiado a todos los nodos; bucket con prefijo `sb/entrada/` para el buzon
 - [ ] CDE: VC `vc-depto-a` y `vc-depto-b` con Airflow; recurso con `datahub-truststore.jks`
 - [ ] CML workspace con grupo CPU y grupo **GPU (min 0)**; AI Inference Service con un LLM open source y un modelo de embeddings
-- [ ] RDS Oracle (backups automaticos ON) y RDS SQL Server Standard/Enterprise, accesibles desde la VPC
+- [ ] EC2 Windows Server en la VPC del ambiente con SQL Server 2022 Developer (base origen `sbcore`, Agent activo, 1433 abierto al CIDR de la VPC) y Power BI Desktop
 - [ ] Cola SQS `sb-bronce-eventos` + notificacion S3 ObjectCreated del prefijo `sb/landing/transacciones/`
 - [ ] EC2 Windows con Power BI Desktop, on-premises data gateway, SQL Developer/DBeaver y SSMS (scripts 03 y 04)
 - [ ] Security group de RDS: 1521 y 1433 abiertos desde las subnets privadas del ambiente (CDE y Cloudera AI)
-- [ ] Cloudera AI: perfil de recursos de 8 vCPU / 16 GB (prueba de 500 usuarios); recurso CDE `sb-drivers` con `ojdbc8.jar` y `mssql-jdbc.jar`
+- [ ] Cloudera AI: perfil de recursos de 8 vCPU / 16 GB (prueba de 500 usuarios); recurso CDE `sb-drivers` con `mssql-jdbc.jar`
 - [ ] GitHub: repo publico, secret CONFIG_YAML, environments sb-dev/test/prod (aprobador en prod), 2 usuarios y runner self-hosted en el EC2 Windows (`fase3/c05/LEEME_CICD.md`)
 - [ ] Hue: SQL AI Assistant habilitado y apuntando a un modelo (C02-AE-12, PG-16)
 - [ ] Cloudera AI: SMTP configurado en el workspace (notificaciones de Jobs para la alerta de drift, C06-AE-06)
@@ -77,6 +78,10 @@ desplegada ofrece el autoscaling clasico en lugar de WAA, tambien cumple; WAA so
 **NiFi en Data Hub Flow Management (no Cloudera DataFlow).** Por simplicidad y costo: un cluster fijo pequeno, sin
 habilitar otro data service. DataFlow sumaria despliegues por flujo con autoscaling y KPIs (reforzaria C02-AE-03 para
 ingesta), pero exige habilitar el servicio y su consumo. Si el ambiente demo ya lo tiene, conviene usarlo.
+
+**Base origen: SQL Server 2022 en EC2 (sin Oracle, decision 23 oct).** Una sola EC2 Windows Server con SQL Server
+Developer (CDC nativo con Agent) y Power BI Desktop. Origen de CDC (Debezium SQL Server), NiFi flujo B y Trino federado.
+Oracle se declara en PG-10 (JDBC estandar, conector Trino certificado), no se demuestra.
 
 **CI/CD: GitHub Actions** (sin acceso a Azure DevOps). Mismos scripts; `referencia_azure-pipelines.yml` muestra el equivalente.
 

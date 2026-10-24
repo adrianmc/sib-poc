@@ -19,8 +19,10 @@ CREATE VIEW IF NOT EXISTS sb_consumption.v_cartera_crediticia (
 AS SELECT cr.identificacion_cliente, p.nombre_producto, p.tipo_producto, c.region,
           cr.monto_original, cr.saldo_pendiente, cr.dias_mora, cr.calificacion_riesgo, cr.fecha_desembolso
    FROM sb_curated.creditos cr
-   LEFT JOIN sb_curated.catalogo_productos p ON p.id_producto = cr.id_producto
-   LEFT JOIN sb_curated.clientes c ON c.identificacion = cr.identificacion_cliente;
+   -- INNER JOIN obligatorio: el filtro de region de Ranger vive en clientes. Con LEFT JOIN los creditos de otras
+   -- regiones aparecian con region NULL (fuga detectada en Power BI el 24 oct)
+   JOIN sb_curated.clientes c ON c.identificacion = cr.identificacion_cliente
+   LEFT JOIN sb_curated.catalogo_productos p ON p.id_producto = cr.id_producto;
 
 -- C04-PRE-03 / AE-06: metricas semanticas oficiales (una sola definicion reutilizable)
 CREATE VIEW IF NOT EXISTS sb_consumption.m_indice_morosidad_oficial (

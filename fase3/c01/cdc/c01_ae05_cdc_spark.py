@@ -1,8 +1,9 @@
 """
-C01-AE-05: CDC automatico Oracle -> Debezium -> Kafka -> Spark Structured Streaming -> MERGE en Iceberg.
+C01-AE-05: CDC automatico SQL Server -> Debezium -> Kafka -> Spark Structured Streaming -> MERGE en Iceberg.
 Procesa UNICAMENTE los registros que cambiaron (eventos c/u/d) y es idempotente (MERGE por llave).
 
-Job CDE (tipo Spark, streaming de larga duracion), VC vc-depto-a:
+Donde corre: CDE esta bloqueado (bug del VC). Alternativa a validar en el bloque CDC: sesion Spark de Cloudera AI
+con las mismas conf. Configuracion original como job CDE (tipo Spark, streaming de larga duracion):
   archivo: c01_ae05_cdc_spark.py      recurso adicional: datahub-truststore.jks (montado en /app/mount/)
   args: --brokers CAMBIAR_BROKERS --usuario sb_ing01 --password CAMBIAR --bucket CAMBIAR_BUCKET
   conf: spark.jars.packages=org.apache.spark:spark-sql-kafka-0-10_2.12:<version de Spark del VC>
@@ -28,12 +29,12 @@ a = ap.parse_args()
 spark = SparkSession.builder.appName("sb-c01-cdc").getOrCreate()
 
 TABLAS = {
-    "sbcore.SBCORE.CLIENTES": {
+    "clientes": {
         "destino": "sb_curated.clientes", "llave": "id_cliente",
         "cols": {"id_cliente": "bigint", "identificacion": "string", "nombre": "string", "email": "string",
                  "telefono": "string", "fecha_nacimiento": "fecha", "region": "string", "segmento": "string",
                  "ingreso_mensual": "decimal(14,2)", "fecha_alta": "fecha", "fecha_actualizacion": "ts"}},
-    "sbcore.SBCORE.CUENTAS": {
+    "cuentas": {
         "destino": "sb_curated.cuentas", "llave": "id_cuenta",
         "cols": {"id_cuenta": "bigint", "id_cliente": "bigint", "tipo_cuenta": "string", "moneda": "string",
                  "saldo": "decimal(16,2)", "estado": "string", "fecha_apertura": "fecha", "id_entidad": "int"}},
@@ -53,17 +54,18 @@ KAFKA = {
 
 
 def convertir(col, tipo):
-    """Oracle via Debezium: DATE/TIMESTAMP llegan como epoch en milisegundos; NUMBER como string."""
-    c = F.col(f"a.{col.upper()}")
+    """SQL Server via Debezium (time.precision.mode=connect): DATE = dias desde 1970-01-01,
+    DATETIME2 = epoch en milisegundos, DECIMAL como string (decimal.handling.mode=string)."""
+    c = F.col(f"a.{col}")
     if tipo == "fecha":
-        return F.to_date(F.from_unixtime(c.cast("long") / 1000)).alias(col)
+        return F.expr(f"date_add(DATE'1970-01-01', CAST(a.{col} AS INT))").alias(col)
     if tipo == "ts":
         return F.from_unixtime(c.cast("long") / 1000).cast("timestamp").alias(col)
     return c.cast(tipo).alias(col)
 
 
 def procesar(topico, meta):
-    campos = StructType([StructField(k.upper(), StringType()) for k in meta["cols"]])
+    campos = StructType([StructField(k, StringType()) for k in meta["cols"]])
     esquema = StructType([StructField("before", campos), StructField("after", campos),
                           StructField("op", StringType()), StructField("ts_ms", LongType())])
     cols = list(meta["cols"])
@@ -90,7 +92,7 @@ def procesar(topico, meta):
             WHEN NOT MATCHED AND s.op <> 'd' THEN INSERT ({ins_cols}) VALUES ({ins_vals})""")
         print(f"[{topico}] lote {batch_id}: {df.count()} cambios aplicados")
 
-    stream = (spark.readStream.format("kafka").options(**KAFKA).option("subscribe", topico).load()
+    stream = (spark.readStream.format("kafka").options(**KAFKA).option("subscribePattern", rf".*\.dbo\.{topico}$").load()
               .select(F.from_json(F.col("value").cast("string"), esquema).alias("e"))
               .select("e.*").filter(F.col("op").isNotNull()))
     return (stream.writeStream.foreachBatch(merge_lote)

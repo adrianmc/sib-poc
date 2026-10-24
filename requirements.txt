@@ -9,7 +9,7 @@ reportlab
 pillow
 pyyaml
 impyla
-oracledb
+pymssql
 boto3
 kafka-python
 scikit-learn

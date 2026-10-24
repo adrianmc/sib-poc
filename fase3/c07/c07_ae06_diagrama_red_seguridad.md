@@ -17,8 +17,8 @@ flowchart TB
         DL[Data Lake: Ranger, Atlas, HMS, Knox, IDBroker, FreeIPA]
         DH[Data Hubs: Kafka + Connect, NiFi]
         EKS[EKS: CDW VW depto A/B, CDE VC A/B, CML CPU/GPU, AI Inference]
-        RDS[(RDS Oracle / SQL Server)]
-        GW[EC2 Windows: Power BI gateway]
+        RDS[(EC2 SQL Server 2022 - base origen sbcore)]
+        GW[EC2 Windows: Power BI Desktop + SQL Server]
       end
     end
     S3[(S3 lakehouse SSE-KMS)]

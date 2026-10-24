@@ -1,0 +1,12 @@
+{
+  "service": "__TRINO__", "name": "sb_11_trino_mask_pii_sqlserver", "policyType": 1, "isEnabled": true,
+  "description": "Trino: masking por recurso sobre la tabla SQL Server consultada en vivo. Las tags de Atlas no clasifican tablas federadas, por eso aqui la politica es por recurso",
+  "resources": {"catalog": {"values": ["sqlserver_core"]}, "schema": {"values": ["dbo"]},
+                "table": {"values": ["clientes"]}, "column": {"values": ["identificacion", "nombre", "email", "telefono"]}},
+  "dataMaskPolicyItems": [
+    {"groups": ["sb_admin", "sb_auditor"], "accesses": [{"type": "select", "isAllowed": true}],
+     "dataMaskInfo": {"dataMaskType": "MASK_NONE"}},
+    {"groups": ["sb_analista", "sb_cientifico", "sb_ingeniero"], "accesses": [{"type": "select", "isAllowed": true}],
+     "dataMaskInfo": {"dataMaskType": "MASK_HASH"}}
+  ]
+}

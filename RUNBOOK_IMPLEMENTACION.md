@@ -9,7 +9,7 @@ Convenciones
 - **(V)** = depende de la version o configuracion del ambiente; confirmar en el primer intento.
 - Estaciones de trabajo:
   - **AI** = Terminal de una sesion de Cloudera AI dentro del proyecto `sib-poc` (raiz `/home/cdsw`).
-  - **WIN** = EC2 Windows (Power BI, SQL Developer, SSMS, runner de GitHub).
+  - **WIN** = EC2 Windows (Power BI Desktop, SQL Server 2022 + SSMS, runner de GitHub).
   - **HUE** = Hue del VW indicado. **CDE** = CLI de CDE (desde AI) o UI del Virtual Cluster.
   - **LAP** = laptop fuera de la plataforma (solo para lectura externa y MCP).
 
@@ -18,7 +18,7 @@ Indice de etapas
 |---|---|---|
 | E0 | Preparar estaciones y configuracion | 3 h |
 | E1 | Identidad y accesos | 3 h |
-| E2 | Fuentes RDS y datos | 6 h |
+| E2 | Fuente SQL Server y datos | 6 h |
 | E3 | Lakehouse, tags y politicas | 4 h |
 | E4 | Smoke tests (Gate 1) | 2 h |
 | E5 | C01 Lakehouse e ingesta | 12 h |
@@ -91,11 +91,10 @@ Buscar marcadores restantes en SQL y Markdown:
 ```
 grep -rn "CAMBIAR" --include=*.sql --include=*.md --include=*.json . | wc -l
 ```
-Reemplazar al menos `CAMBIAR_BUCKET` y hosts de RDS:
+Reemplazar al menos `CAMBIAR_BUCKET` y la IP privada de la EC2 con SQL Server:
 ```
 grep -rl "CAMBIAR_BUCKET" . | xargs sed -i 's/CAMBIAR_BUCKET/<bucket>/g'
-grep -rl "CAMBIAR_RDS_ORACLE" . | xargs sed -i 's/CAMBIAR_RDS_ORACLE/<host-oracle>/g'
-grep -rl "CAMBIAR_RDS_SQLSERVER" . | xargs sed -i 's/CAMBIAR_RDS_SQLSERVER/<host-sqlserver>/g'
+grep -rl "CAMBIAR_SQLSERVER_IP_PRIVADA" . | xargs sed -i 's/CAMBIAR_SQLSERVER_IP_PRIVADA/<ip-privada-ec2>/g'
 ```
 
 **E0.4 Certificado de Kafka (PEM)** (AI)
@@ -127,15 +126,15 @@ Valida: pide la workload password y lista (vacio). Repetir con un segundo archiv
 ```
 cde resource create --name sib-codigo
 cde resource upload --name sib-codigo --local-path fase2/02_transacciones_masivas_spark.py \
-  --local-path fase2/05b_cargar_rds_spark.py --local-path fase3/c02/c02_pipeline_batch.py \
+  --local-path fase3/c02/c02_pipeline_batch.py \
   --local-path fase3/c01/cdc/c01_ae05_cdc_spark.py --local-path fase3/c02/c02_streaming_consumidor.py \
   --local-path config/datahub-truststore.jks
 cde resource create --name sb-drivers
-cde resource upload --name sb-drivers --local-path <ruta>/mssql-jdbc.jar --local-path <ruta>/ojdbc8.jar
+cde resource upload --name sb-drivers --local-path <ruta>/mssql-jdbc.jar
 cde resource create --name sib-airflow
 cde resource upload --name sib-airflow --local-path fase3/c02/c02_dag_airflow.py
 ```
-Drivers: descargar `mssql-jdbc` (Microsoft) y `ojdbc8` (Oracle) a la sesion. Si `--local-path` no acepta varios
+Drivers: descargar `mssql-jdbc` (Microsoft) a la sesion. Si `--local-path` no acepta varios
 valores en tu version **(V)**, subir uno por comando.
 Valida: `cde resource describe --name sib-codigo` lista los archivos.
 
@@ -156,13 +155,13 @@ Valida: Ranger > Settings > Users/Groups muestra los 9 usuarios y los grupos `sb
 
 ---
 
-## E2 - Fuentes RDS y datos
+## E2 - Fuente SQL Server y datos
 
-**E2.1 Esquemas en RDS** (WIN)
-- SQL Developer (usuario master de RDS Oracle): ejecutar `fase2/03_rds_oracle.sql`.
-  Valida: la consulta final muestra `SUPPLEMENTAL_LOG_DATA_MIN = YES` y `LOG_MODE = ARCHIVELOG`.
-- SSMS (usuario master de RDS SQL Server): ejecutar `fase2/04_rds_sqlserver.sql`.
-  Valida: `is_cdc_enabled = 1` en `sbcreditos` y `is_tracked_by_cdc = 1` en `creditos`.
+**E2.1 Base origen en SQL Server** (WIN: EC2 Windows Server con SQL Server 2022 Developer, en la VPC del ambiente)
+- SSMS como sysadmin: ejecutar `fase2/03_sqlserver_origen.sql` (cambiar las 2 contrasenas antes).
+  Valida: `is_cdc_enabled = 1` en `sbcore` y `is_tracked_by_cdc = 1` en clientes, cuentas y creditos.
+- Prerrequisitos: autenticacion mixta, TCP 1433, SQL Server Agent en ejecucion, firewall de Windows y security group
+  con 1433 abiertos al CIDR de la VPC.
 
 **E2.2 Generar datos** (AI, perfil 4 vCPU / 16 GB, ~15 min)
 ```
@@ -185,20 +184,12 @@ hdfs dfs -ls -R $B/landing | wc -l
 ```
 Valida: ~20 archivos listados.
 
-**E2.4 Cargar RDS** (CDE, ~20 min)
+**E2.4 Cargar SQL Server** (AI Terminal, ~15-20 min: 3.5M filas)
 ```
-cde job create --name sib-cargar-rds --type spark --application-file 05b_cargar_rds_spark.py \
-  --mount-1-resource sib-codigo --mount-2-resource sb-drivers \
-  --conf spark.jars=/app/mount/ojdbc8.jar,/app/mount/mssql-jdbc.jar \
-  --arg --bucket --arg <bucket> \
-  --arg --ora-url --arg "jdbc:oracle:thin:@//<host-oracle>:1521/ORCL" --arg --ora-user --arg SBCORE --arg --ora-password --arg <pwd> \
-  --arg --sql-url --arg "jdbc:sqlserver://<host-sqlserver>:1433;databaseName=sbcreditos;encrypt=false" \
-  --arg --sql-user --arg <usr> --arg --sql-password --arg <pwd>
-cde job run --name sib-cargar-rds
+python fase2/05_cargar_sqlserver.py
 ```
-**(V)** con dos recursos montados sin prefijo, ambos quedan en `/app/mount/`; si tu version exige prefijo, usar
-`--mount-2-prefix drivers/` y `spark.jars=/app/mount/drivers/...`.
-Valida: en SQL Developer `SELECT COUNT(*) FROM SBCORE.CLIENTES` = 1.000.000 y CUENTAS = 2.000.000; en SSMS `creditos` = 500.000.
+Valida: `clientes`, `cuentas` y `creditos` con los mismos conteos del manifiesto (SSMS: `SELECT COUNT(*) FROM dbo.<tabla>`).
+Si se cuelga al conectar: revisar security group y firewall de Windows en 1433.
 
 **E2.5 Volumen masivo** (CDE, ~10-20 min)
 ```
@@ -253,32 +244,21 @@ Gate 1 = las 10 en verde.
 
 ## E5 - C01 Lakehouse e ingesta
 
-**E5.1 CDC Oracle** (timebox 1.5 dias)
+**E5.1 CDC SQL Server** (Debezium SQL Server)
 1. Topico de historia: SMM > Topics > Add New: `sbcore.historia.esquema` (1 particion). **(V)** el resto se autocrea.
-2. Driver Oracle para Debezium: copiar `ojdbc8.jar` al directorio de plugins de Kafka Connect en los nodos del Data Hub **(V)**.
-3. SMM > Connect > New Connector > Debezium Oracle: pegar el `config` de `fase3/c01/cdc/debezium_oracle.json`
-   (sin la clave `_notas`; dejar solo el par 1.x o 2.x que aplique). Estado esperado: RUNNING.
-4. SMM > Topics: aparecen `sbcore.SBCORE.CLIENTES` y `sbcore.SBCORE.CUENTAS` con mensajes del snapshot inicial.
-5. Job streaming (AI):
-```
-cde job create --name sib-cdc --type spark --application-file c01_ae05_cdc_spark.py --mount-1-resource sib-codigo \
-  --conf spark.jars.packages=org.apache.spark:spark-sql-kafka-0-10_2.12:<version_spark_vc> \
-  --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions \
-  --conf spark.sql.catalog.spark_catalog=org.apache.iceberg.spark.SparkSessionCatalog \
-  --conf spark.sql.catalog.spark_catalog.type=hive \
-  --conf spark.sql.iceberg.handle-timestamp-without-timezone=true --conf spark.sql.session.timeZone=UTC \
-  --arg --brokers --arg <brokers> --arg --usuario --arg sb_ing01 --arg --password --arg <pwd> --arg --bucket --arg <bucket>
-cde job run --name sib-cdc
-```
-6. Esperar el snapshot (HUE): `REFRESH sb_curated.clientes; SELECT COUNT(*) FROM sb_curated.clientes;` = 1.000.000.
-7. Prueba (WIN SQL Developer como SBCORE): `fase3/c01/cdc/c01_ae05_generar_cambios.sql`. Luego en HUE las consultas comentadas del mismo archivo.
+2. SMM > Connect > New Connector > Debezium SQL Server: pegar el `config` de `fase3/c01/cdc/debezium_sqlserver.json`
+   (sin la clave `_notas`; dejar solo el juego 1.x o 2.x que aplique). Estado esperado: RUNNING.
+3. SMM > Topics: aparecen los topicos de `dbo.clientes`, `dbo.cuentas` y `dbo.creditos` con mensajes del snapshot inicial.
+4. Consumidor `fase3/c01/cdc/c01_ae05_cdc_spark.py` (MERGE en Iceberg). CDE bloqueado: se define donde corre en este bloque
+   (sesion Spark de Cloudera AI).
+5. Esperar el snapshot (HUE): `REFRESH sb_curated.clientes; SELECT COUNT(*) FROM sb_curated.clientes;` = 1.000.000.
+6. Prueba (WIN SSMS, base sbcore): `fase3/c01/cdc/c01_ae05_generar_cambios.sql`. Luego en HUE las consultas comentadas del mismo archivo.
 Valida: solo cambian los ids 10, 20, 30, 40 y 9000001 (ver `cdc_ts`). Cubre: **C01-AE-05, PG-04**.
-Plan B si se vence el timebox: conector `debezium_sqlserver.json` sobre `dbo.creditos` y adaptar el job a esa tabla.
 
 **E5.2 Cuentas para los pipelines** (si E5.1 se retrasa)
 El pipeline necesita `sb_curated.clientes` y `cuentas`. Carga puente (HUE Impala), se reemplaza cuando el CDC funcione:
 ```sql
--- Solo si el CDC aun no corre: leer de los CSV crudos de RDS
+-- Solo si el CDC aun no corre: leer de los CSV crudos extraidos del origen
 CREATE EXTERNAL TABLE IF NOT EXISTS sb_raw.clientes_csv (id_cliente BIGINT, identificacion STRING, nombre STRING, email STRING,
   telefono STRING, fecha_nacimiento STRING, region STRING, segmento STRING, ingreso_mensual DOUBLE, fecha_alta STRING,
   fecha_actualizacion STRING) ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' STORED AS TEXTFILE
@@ -308,7 +288,7 @@ y en Data Provenance. Cubre: **C01-AE-01**.
 Valida: imprime esquema y 20 filas. Plan B: `c01_ae06_lectura_externa_duckdb.py`. Cubre: **C01-PRE-04, C01-AE-06**.
 
 **E5.7 Federacion Trino** (opcional, 3 h)
-CDW > Federation Connectors > Oracle (certificado), catalogo `oracle_core`, asociar al Trino VW. HUE Trino: `c01_federacion_trino.sql`.
+Catalogo `sqlserver_core` (conector SQL Server de Trino, comunitario: declararlo) asociado al Trino VW. HUE Trino: `c01_federacion_trino.sql`.
 
 ---
 
@@ -321,7 +301,7 @@ cde job create --name sb-pipeline-batch --type spark --application-file c02_pipe
   --conf spark.sql.extensions=org.apache.iceberg.spark.extensions.IcebergSparkSessionExtensions \
   --conf spark.sql.catalog.spark_catalog=org.apache.iceberg.spark.SparkSessionCatalog \
   --conf spark.sql.catalog.spark_catalog.type=hive --conf spark.sql.iceberg.handle-timestamp-without-timezone=true \
-  --arg --bucket --arg <bucket> --arg --jdbc-url --arg "jdbc:sqlserver://<host-sqlserver>:1433;databaseName=sbcreditos;encrypt=false" \
+  --arg --bucket --arg <bucket> --arg --jdbc-url --arg "jdbc:sqlserver://<ip-privada-ec2>:1433;databaseName=sbcore;encrypt=false" \
   --arg --jdbc-user --arg <usr> --arg --jdbc-password --arg <pwd> --arg --version --arg v1
 cde job run --name sb-pipeline-batch
 ```
@@ -426,7 +406,7 @@ Datos: `fase3/c05/c05_versionado_datos.sql` en HUE. Cubre: **C05-PRE-01..06, C05
 ## E11 - C08 Gobernanza
 | Paso | Comando | Valida | Cubre |
 |---|---|---|---|
-| 1 | AI: `python fase3/c08/c08_registro_activos_y_linaje_bi.py` | 200/409 en tipos; Atlas muestra Gobierno_SB en clientes/creditos y linaje Oracle -> curada -> vista -> dashboard | PRE-01/02, AE-01/02 |
+| 1 | AI: `python fase3/c08/c08_registro_activos_y_linaje_bi.py` | 200/409 en tipos; Atlas muestra Gobierno_SB en clientes/creditos y linaje SQL Server -> curada -> vista -> dashboard | PRE-01/02, AE-01/02 |
 | 2 | HUE: `c08_impacto_y_corrupcion.sql` (parte AE-03, luego AE-06 re-ejecutando `sb-pipeline-batch`) | vista dependiente falla; nombre corrupto en PBI; Ranger audit de sb_ing01; rollback restaura | AE-03/06 |
 | 3 | AWS + `c08_auditoria_e_inmutabilidad.md` | delete en bucket WORM -> AccessDenied | AE-05, PRE-05 |
 | 4 | Ranger > Audit > Access filtrando sb_analista01 | Allowed y Denied con fecha y recurso | AE-04 |

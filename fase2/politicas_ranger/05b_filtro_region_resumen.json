@@ -1,0 +1,11 @@
+{
+  "service": "__HIVE__", "name": "sb_05b_filtro_region_resumen", "policyType": 2, "isEnabled": true,
+  "description": "Mismo ABAC de region sobre la tabla de consumo resumen_cliente_mensual (tiene region materializada; el filtro de clientes no la alcanza). Cubre tambien la vista m_transaccionalidad_mensual",
+  "resources": {"database": {"values": ["sb_consumption"]}, "table": {"values": ["resumen_cliente_mensual"]}},
+  "rowFilterPolicyItems": [
+    {"groups": ["attr_region_central"], "accesses": [{"type": "select", "isAllowed": true}],
+     "rowFilterInfo": {"filterExpr": "region = 'CENTRAL'"}},
+    {"groups": ["attr_region_norte"], "accesses": [{"type": "select", "isAllowed": true}],
+     "rowFilterInfo": {"filterExpr": "region = 'NORTE'"}}
+  ]
+}

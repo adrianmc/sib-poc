@@ -1,7 +1,7 @@
 """
 C08-PRE-01/02, AE-01, AE-02, AE-06: completa en Atlas lo que no se captura automaticamente:
   - Metadata de negocio (Business Metadata "Gobierno_SB": dominio, propietario de negocio, criticidad) + owner.
-  - Tramo de ORIGEN del linaje: tablas Oracle/SQL Server -> proceso CDC/JDBC -> tablas curadas.
+  - Tramo de ORIGEN del linaje: tablas SQL Server (base sbcore) -> proceso CDC -> tablas curadas.
   - Tramo de CONSUMO del linaje: tablas/vistas -> refresh -> dashboard Power BI; documentos -> indexacion -> agente RAG.
 El tramo intermedio (Spark en CDE, Impala/Hive: curada -> consumible) lo captura Atlas automaticamente.
 Honestidad: los tramos de origen y consumo son registro por API (workaround, desarrollo minimo). El linaje
@@ -74,11 +74,11 @@ def main():
         r = S.post(f"{ATLAS}/entity/guid/{g}/businessmetadata", params={"isOverwrite": "true"}, json={"Gobierno_SB": attrs})
         print(f"Metadata de negocio {tabla}: {r.status_code}")
 
-    # Tramo de origen: Oracle (CDC Debezium) y SQL Server (JDBC Spark) hacia la capa curada
+    # Tramo de origen: SQL Server sbcore (CDC Debezium; creditos incremental NiFi) hacia la capa curada
     for qn, nombre, sistema, mecanismo, destino in [
-            ("oracle://sbcore/SBCORE.CLIENTES", "SBCORE.CLIENTES", "Oracle RDS core", "CDC Debezium + Spark MERGE", "sb_curated.clientes"),
-            ("oracle://sbcore/SBCORE.CUENTAS", "SBCORE.CUENTAS", "Oracle RDS core", "CDC Debezium + Spark MERGE", "sb_curated.cuentas"),
-            ("sqlserver://sbcreditos/dbo.creditos", "dbo.creditos", "SQL Server RDS creditos", "Spark JDBC (sb-pipeline-batch)", "sb_curated.creditos")]:
+            ("sqlserver://sbcore/dbo.clientes", "dbo.clientes", "SQL Server core (EC2)", "CDC Debezium + Spark MERGE", "sb_curated.clientes"),
+            ("sqlserver://sbcore/dbo.cuentas", "dbo.cuentas", "SQL Server core (EC2)", "CDC Debezium + Spark MERGE", "sb_curated.cuentas"),
+            ("sqlserver://sbcore/dbo.creditos", "dbo.creditos", "SQL Server core (EC2)", "Extraccion a S3 + pipeline SQL (sib-pipeline)", "sb_curated.creditos")]:
         crear("tabla_sistema_origen", qn, nombre, {"sistema": sistema})
         proc = {"typeName": "proceso_ingesta", "attributes": {
             "qualifiedName": f"ingesta://{nombre}", "name": f"Ingesta {nombre}", "mecanismo": mecanismo,

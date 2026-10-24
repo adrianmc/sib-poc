@@ -1,7 +1,7 @@
 """
 C02-AE-01/05/06: pipeline batch con 3 fuentes y 4 pasos de transformacion verificables.
 
-Fuentes: (1) clientes/cuentas curados por CDC desde Oracle, (2) creditos por JDBC desde SQL Server,
+Fuentes: (1) clientes/cuentas curados por CDC desde SQL Server, (2) creditos por JDBC desde SQL Server,
          (3) transacciones crudas multiformato en S3 (csv, json, avro, parquet, masivo).
 Pasos:   1 limpieza y tipado | 2 deduplicacion (ROW_NUMBER) | 3 enriquecimiento con maestras
          4 conciliacion FULL OUTER JOIN + agregacion mensual con ranking.
@@ -10,7 +10,7 @@ Fallo controlado (C02-AE-05): si existe s3a://<bucket>/sb/control/fallar_paso_<N
 
 Job CDE "sb-pipeline-batch" (Spark 3, Iceberg activado). Recursos: este archivo + mssql-jdbc.jar
 (Si el VC no incluye spark-avro: agregar spark.jars.packages=org.apache.spark:spark-avro_2.12:<version Spark>)
-  args: --bucket CAMBIAR_BUCKET --jdbc-url "jdbc:sqlserver://CAMBIAR_RDS_SQLSERVER:1433;databaseName=sbcreditos;encrypt=false"
+  args: --bucket CAMBIAR_BUCKET --jdbc-url "jdbc:sqlserver://CAMBIAR_SQLSERVER_IP_PRIVADA:1433;databaseName=sbcore;encrypt=false"
         --jdbc-user CAMBIAR --jdbc-password CAMBIAR --version v1
 """
 import argparse
