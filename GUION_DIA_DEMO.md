@@ -86,3 +86,6 @@ Chequeo previo (laptop, en el repo): `git ls-remote --tags origin v1.0.0` y `git
 (si el segundo falla, el tag apunta a un commit viejo: `git tag -f v1.0.0 HEAD && git push -f origin v1.0.0`).
 Leccion (26-oct): v1.0.0 se creo antes del pipeline; el job fallo con SystemExit 2. ejecutar_version.py ahora hace fetch
 con --force, materializa por commit (no por tag) y valida que la version tenga el pipeline, con mensaje accionable.
+Red (26-oct): la EC2 no llega al balanceador de CAI (TCP 443) aun con regla en su SG. Despliegue via cola:
+`sb_gov.solicitudes_despliegue` + Application `sib-despachador` en CAI. Antes de la demo: sib-despachador en Running.
+Narrativa: el CI/CD externo no tiene credenciales de Cloudera AI; deja una solicitud auditable que la plataforma ejecuta.

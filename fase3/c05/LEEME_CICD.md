@@ -22,6 +22,27 @@ el orquestador solo los llama. Por eso el mismo flujo corre en Azure Pipelines s
 9. Sin CDE: crear los Jobs `sib-pipeline-dev/test/prod` en Cloudera AI y poner `cai.*` en CONFIG_YAML (ver `fase3/c02/LEEME_JOBS_CAI.md`).
 10. Prueba en seco antes de la demo: abrir un PR de prueba y verificar que los 4 jobs aparecen y que el runner los toma.
 
+## Lecciones de la instalacion (26-oct)
+- Runner en `C:\actions-runner`. En `C:\Users\Administrator\...` el servicio queda Offline:
+  "Access to the path 'C:\Users\Administrator' is denied" (NETWORK SERVICE no lee perfiles).
+- Comandos de Windows: `.\config.cmd` (GitHub a veces muestra `./config.sh`).
+- `Invoke-WebRequest` lento: antes ejecutar `$ProgressPreference = 'SilentlyContinue'` (o usar `curl.exe -L -o`).
+- Python 3.11 o 3.12 "Install for all users" (3.15 es muy nueva: faltan wheels).
+- Una sola cuenta GitHub: ruleset con Required approvals = 0 y bypass para Repository admin; en sb-prod reviewer = uno mismo
+  y SIN "Prevent self-review". Declarar: en operacion real el aprobador es otra persona.
+- Secret CONFIG_YAML = config/config.cicd.ejemplo.yaml lleno (minimo), no el config.yaml completo. api_key vence en 1 dia.
+- El workflow borra config/config.yaml del runner al terminar cada job (paso "Limpieza", if: always()).
+
+## Despliegue via cola (26-oct)
+El balanceador del workspace de Cloudera AI no acepto la IP del runner (ping si, TCP 443 no, aun con la regla en su SG:
+el balanceador lo administra Kubernetes). Solucion sin depender de esa red:
+1. Runner (GitHub) -> `desplegar_cai.py --via cola`: INSERT en `sb_gov.solicitudes_despliegue` (PENDIENTE) por Impala y espera.
+2. Cloudera AI > Applications > **sib-despachador** (`fase3/c05/despachador_cai.py`): toma la solicitud, apunta el Job
+   `sib-pipeline-<amb>` a la version, registra en `sb_gov.despliegues`, ejecuta y marca EXITOSO/FALLIDO.
+3. El runner lee el estado: check verde o rojo en el PR. La URL de la Application muestra la cola (pantalla para la demo).
+Ventaja para la SIB: el CI/CD externo nunca tiene credenciales de Cloudera AI; solo deja una solicitud auditable.
+Prerrequisito: la Application `sib-despachador` en Running antes de abrir el PR.
+
 ## Verificacion de la preparacion (checklist)
 - [ ] Runner `sb-poc` en estado Idle en Settings > Actions > Runners
 - [ ] `python --version` y `git --version` en el EC2 Windows

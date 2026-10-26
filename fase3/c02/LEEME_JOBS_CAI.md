@@ -18,7 +18,9 @@ el flujo se muestra con Jobs de Cloudera AI. Mismo pipeline, mismos controles". 
 | sib-pipeline-prod | fase3/c05/ejecutar_version.py | `--ref v1.0.0 --ambiente prod` | Manual |
 
    En sib-pipeline: Notifications > on failure > tu correo (si el workspace tiene SMTP).
-4. **Trigger por capa bronce**: Applications > New: `fase3/c02/c02_trigger_bronce.py` (requiere SQS de E6.4).
+4. **Despachador de CI/CD**: Applications > New: name y subdomain `sib-despachador`, script `fase3/c05/despachador_cai.py`,
+   Python 3.10, 1 vCPU / 2 GB. Debe quedar Running (C05).
+5. **Trigger por capa bronce**: Applications > New: `fase3/c02/c02_trigger_bronce.py` (requiere SQS de E6.4).
 
 ## Demo C02
 | Item | Accion | Evidencia |
