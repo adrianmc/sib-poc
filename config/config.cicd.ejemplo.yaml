@@ -1,0 +1,20 @@
+# =====================================================================
+# Config MINIMA para GitHub Actions (secret CONFIG_YAML). Solo lo que usan validar_esquema.py,
+# validar_calidad.py y desplegar_cai.py. NO pegar el config.yaml completo en GitHub.
+# - usuarios: solo ingeniero (validaciones) y admin (registro en sb_gov.despliegues)
+# - cai.api_key vence en 1 dia: regenerar antes de cada sesion y actualizar el secret
+# Rotar estas contrasenas al cerrar la PoC.
+# =====================================================================
+impala:
+  host_depto_a: CAMBIAR_HOST_IMPALA_SIB_A    # host del VW impala-sib-a
+  port: 443
+  http_path: cliservice
+
+usuarios:
+  admin:     {user: user001, password: CAMBIAR}
+  ingeniero: {user: user002, password: CAMBIAR}
+
+cai:
+  url: https://CAMBIAR_WORKSPACE_CAI         # sin / al final
+  api_key: CAMBIAR                           # vence en 1 dia
+  project_id: CAMBIAR

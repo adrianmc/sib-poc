@@ -32,8 +32,8 @@ datalake:
   knox_api: https://CAMBIAR_GATEWAY_HOST/CAMBIAR_DATALAKE/cdp-proxy-api
   ranger_hive_service: cm_hive       # verificar nombre exacto en Ranger UI (Hadoop SQL)
   ranger_tag_service: cm_tag         # verificar nombre exacto en Ranger UI (TAG)
-  ranger_trino_service: cm_trino
-  ranger_kafka_service: sibrd_kafka_kafka_03b5   # servicio Kafka del Data Hub en Ranger (no cm_kafka)     # servicio Ranger del Trino VW (verificar)
+  ranger_trino_service: cm_trino     # servicio Ranger del Trino VW (verificar)
+  ranger_kafka_service: sibrd_kafka_kafka_03b5   # servicio Kafka del Data Hub en Ranger (no cm_kafka)
   ranger_admins_extra: [user001]     # usuarios adicionales en el rol de Ranger sb_admin (ademas de usuarios.admin)
   atlas_sufijo_cluster: cm           # qualifiedName de Atlas termina en @cm en CDP
 

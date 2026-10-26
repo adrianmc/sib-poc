@@ -1,4 +1,5 @@
 config/config.yaml
+config/config.cicd.yaml
 config/*.pem
 salida/
 __pycache__/
