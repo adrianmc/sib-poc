@@ -89,3 +89,11 @@ con --force, materializa por commit (no por tag) y valida que la version tenga e
 Red (26-oct): la EC2 no llega al balanceador de CAI (TCP 443) aun con regla en su SG. Despliegue via cola:
 `sb_gov.solicitudes_despliegue` + Application `sib-despachador` en CAI. Antes de la demo: sib-despachador en Running.
 Narrativa: el CI/CD externo no tiene credenciales de Cloudera AI; deja una solicitud auditable que la plataforma ejecuta.
+PR validado 26-oct 15:25: CI (esquema + calidad) 42 s en verde; DEV via cola: sib-despachador EXITOSO, check verde (4m56s total).
+Secuencia demo C05: PR (CI + DEV) -> merge (TEST automatico) -> PROD "Waiting for review" -> aprobar -> PROD -> rollback
+(Actions > sb-cicd > Run workflow, rollback_ref = v1.0.0). Pantallas: PR checks, pagina sib-despachador, Jobs de CAI,
+`SELECT * FROM sb_gov.despliegues ORDER BY fecha DESC`.
+Runner: Python en C:\Program Files\Python\Python311 debe estar en C:\actions-runner\.path (UNA sola linea) y en el PATH de maquina.
+Estado C05 (26-oct): PR -> CI -> DEV -> merge -> TEST -> PROD funcionando (prod dfd61f5 EXITOSO). sb-prod quedo SIN required
+reviewers durante esa corrida (corregido despues: Required reviewers = adrianmc, sin Prevent self-review).
+Pendiente para el dry-run: captura de PROD en "Waiting for review" (AE-03) y rollback a v1.0.0 (AE-05) con Run workflow.

@@ -31,6 +31,8 @@ el orquestador solo los llama. Por eso el mismo flujo corre en Azure Pipelines s
 - Una sola cuenta GitHub: ruleset con Required approvals = 0 y bypass para Repository admin; en sb-prod reviewer = uno mismo
   y SIN "Prevent self-review". Declarar: en operacion real el aprobador es otra persona.
 - Secret CONFIG_YAML = config/config.cicd.ejemplo.yaml lleno (minimo), no el config.yaml completo. api_key vence en 1 dia.
+- El runner toma el PATH de `C:\actions-runner\.path` (UNA linea). Si `python` no se reconoce: escribirlo con
+  `Set-Content C:\actions-runner\.path $nuevo -NoNewline` (Python primero) y `Restart-Service actions.runner.*`.
 - El workflow borra config/config.yaml del runner al terminar cada job (paso "Limpieza", if: always()).
 
 ## Despliegue via cola (26-oct)
@@ -63,4 +65,3 @@ tablas. Si la SIB pide segregacion de datos (Pregunta 3), se parametriza la base
 | AE-04 | Aprobado: Job `sib-pipeline-prod` apunta a la version `<commit>` (worktree inmutable); fila en `sb_gov.despliegues` |
 | AE-05 | Actions > sb-cicd > Run workflow con `rollback_ref = v1.0.0`: el Job vuelve a esa version inmutable; `sb_gov.despliegues` conserva ambas |
 | AE-06 | `c05_versionado_datos.sql` |
-# prueba CI/CD

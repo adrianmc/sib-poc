@@ -38,7 +38,7 @@ jobs:
     name: "CI: validacion de esquema y calidad"
     runs-on: [self-hosted, sb-poc]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with: { ref: "${{ env.REF }}", fetch-depth: 0 }
       - name: Dependencias y configuracion
         env: { CONFIG_YAML: "${{ secrets.CONFIG_YAML }}" }
@@ -50,7 +50,7 @@ jobs:
       - name: Validacion de calidad de datos
         run: python fase3/c05/validar_calidad.py
       - name: Empaquetado del artefacto
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with: { name: codigo_pipeline, path: fase3/c02 }
       - name: Limpieza de credenciales en el runner
         if: always()
@@ -63,7 +63,7 @@ jobs:
     runs-on: [self-hosted, sb-poc]
     environment: sb-dev
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with: { ref: "${{ env.REF }}" }
       - name: Desplegar job CDE (dev) y verificar ejecucion
         env: { CONFIG_YAML: "${{ secrets.CONFIG_YAML }}" }
@@ -81,7 +81,7 @@ jobs:
     runs-on: [self-hosted, sb-poc]
     environment: sb-test
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with: { ref: "${{ env.REF }}" }
       - name: Desplegar job CDE (test) y verificar
         env: { CONFIG_YAML: "${{ secrets.CONFIG_YAML }}" }
@@ -98,7 +98,7 @@ jobs:
     runs-on: [self-hosted, sb-poc]
     environment: sb-prod
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with: { ref: "${{ env.REF }}" }
       - name: Desplegar job CDE (prod) y verificar
         env: { CONFIG_YAML: "${{ secrets.CONFIG_YAML }}" }

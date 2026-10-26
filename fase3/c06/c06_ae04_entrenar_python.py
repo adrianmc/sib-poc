@@ -1,7 +1,8 @@
 """
 C06-AE-02/04: entrenamiento Python con trazabilidad completa en MLflow (CML Experiments + Model Registry).
 Traza: parametros, metricas, codigo (commit Git del proyecto) y DATOS (snapshot Iceberg exacto usado).
-Ejecutar en CML (sesion JupyterLab Python 3.10+, perfil 4 vCPU/16 GB) como sb_cient01.
+Ejecutar en Cloudera AI, Terminal de una sesion Python 3.10 (4 vCPU / 16 GB): python fase3/c06/c06_ae04_entrenar_python.py
+Usa el rol 'cientifico' de config.yaml (user003): PII llega en hash, el JOIN funciona igual (hash deterministico).
 Produce tambien: data/features_creditos.csv (para R) y data/referencia_drift.csv (para C06-AE-06).
 """
 import os
@@ -59,6 +60,11 @@ with mlflow.start_run(run_name="gbm-python"):
     commit = subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True, cwd="/home/cdsw").stdout.strip()
     mlflow.set_tags({"datos.tabla": "sb_curated.creditos", "datos.snapshot_iceberg": str(snapshot),
                      "codigo.commit": commit or "sin-git", "autor": os.environ.get("HADOOP_USER_NAME", "")})
-    mlflow.sklearn.log_model(modelo, "modelo", registered_model_name="sb-riesgo-credito")
+    try:
+        mlflow.sklearn.log_model(modelo, "modelo", registered_model_name="sb-riesgo-credito")
+        print("Modelo registrado en Model Registry: sb-riesgo-credito")
+    except Exception as e:   # workspace sin Model Registry: queda el artefacto en el run (registrar luego desde la UI)
+        print(f"Registro omitido ({type(e).__name__}): {str(e)[:150]}")
+        mlflow.sklearn.log_model(modelo, "modelo")
     joblib.dump({"modelo": modelo, "columnas": list(X.columns)}, "/home/cdsw/data/modelo_riesgo.joblib")
     print("AUC:", round(roc_auc_score(y_te, p), 4))
