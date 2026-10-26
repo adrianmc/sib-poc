@@ -65,6 +65,9 @@ EXEC sys.sp_cdc_enable_table @source_schema = N'dbo', @source_name = N'clientes'
 EXEC sys.sp_cdc_enable_table @source_schema = N'dbo', @source_name = N'cuentas',  @role_name = NULL, @supports_net_changes = 0;
 EXEC sys.sp_cdc_enable_table @source_schema = N'dbo', @source_name = N'creditos', @role_name = NULL, @supports_net_changes = 0;
 GO
+-- Snapshot de Debezium sin bloquear escrituras (conector con snapshot.isolation.mode=snapshot)
+ALTER DATABASE sbcore SET ALLOW_SNAPSHOT_ISOLATION ON;
+GO
 -- Validacion: is_cdc_enabled = 1 y las 3 tablas con is_tracked_by_cdc = 1
 SELECT name, is_cdc_enabled FROM sys.databases WHERE name = 'sbcore';
 SELECT name, is_tracked_by_cdc FROM sys.tables;

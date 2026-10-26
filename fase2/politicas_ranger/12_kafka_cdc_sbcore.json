@@ -1,0 +1,47 @@
+{
+  "service": "__KAFKA__",
+  "name": "sb_12_kafka_cdc_sbcore",
+  "policyType": 0,
+  "isEnabled": true,
+  "description": "CDC Debezium: el conector se autentica como user002 (rol sb_ingeniero) y crea/escribe los topicos sbcore*",
+  "resources": {
+    "topic": {
+      "values": [
+        "sbcore*"
+      ]
+    }
+  },
+  "policyItems": [
+    {
+      "groups": [
+        "sb_ingeniero"
+      ],
+      "accesses": [
+        {
+          "type": "publish",
+          "isAllowed": true
+        },
+        {
+          "type": "consume",
+          "isAllowed": true
+        },
+        {
+          "type": "describe",
+          "isAllowed": true
+        },
+        {
+          "type": "create",
+          "isAllowed": true
+        },
+        {
+          "type": "configure",
+          "isAllowed": true
+        },
+        {
+          "type": "describe_configs",
+          "isAllowed": true
+        }
+      ]
+    }
+  ]
+}

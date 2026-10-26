@@ -3,6 +3,7 @@
 Estado: borrador. Version final el 28-oct; dry-run el 29-oct.
 
 ## Checklist general antes de cada sesion
+- [ ] Encender ambiente, Data Lake y Data Hubs al menos 1 h antes (arranque medido: >= 1 h)
 - [ ] Data Lake, FreeIPA y Data Hubs en Running/Healthy
 - [ ] Impala VW `impala-sib-a` encendido (el VW anterior quedo con el catalogd danado: no usar)
 - [ ] Sesion de Cloudera AI abierta con Terminal; `cd /home/cdsw`
@@ -51,7 +52,8 @@ Narrativa: permisos con roles de Ranger (independientes del IdP), atributos como
 Pendiente: capturas de evidencia (se cerro la sesion sin guardarlas).
 
 ## C04 Power BI (AE-01 validado 24-oct) - ~6 min
-Preparacion: EC2 Windows encendida, Power BI con el driver Cloudera redirigido (guia c04, paso 0), archivo .pbix
+Preparacion: EC2 Windows encendida, Power BI con el driver Cloudera redirigido (guia c04, paso 0), conectado al host
+de `impala-sib-a` (VW oficial; el AE-01 del 24-oct se valido contra sibrd-impala: reconectar), archivo .pbix
 abierto con la pagina "AE-01" (tarjeta Suma dias_mora + tabla filtrada dias_mora > 900), conectado como user006.
 Actualizacion de pagina cada 5 s. En Hue (user001) dejar escritos el UPDATE +1000 y el -1000 con el id_credito.
 | # | Accion | Se ve | Prueba |
@@ -59,5 +61,22 @@ Actualizacion de pagina cada 5 s. En Hue (user001) dejar escritos el UPDATE +100
 | 1 | Mostrar conexion: conector Impala, DirectQuery, usuario user006 | Solo region NORTE (61.319 creditos), identificacion en hash | C04-PRE-01, AE-03 |
 | 2 | Hue: UPDATE +1000 | Tarjeta sube 1000 y aparece la fila, sin tocar Power BI | AE-01 |
 | 3 | Hue: UPDATE -1000 | Vuelve al valor original | AE-01 |
+Lecciones (25-oct): con el host de sibrd-impala (VW viejo) Power BI dio 503 y luego ParseException en `select top`;
+mismo archivo y driver con el host de impala-sib-a funciona. Todas las consultas del .pbix deben apuntar a impala-sib-a
+(revisar en Editor avanzado, linea Source).
 Lecciones (24-oct): el conector Impala de fabrica no habla HTTP (error "Unexpected response"); Hive LLAP ya no existe
-en Power BI. Si Power BI se actualiza, rehacer el paso 0 de la guia. Pendientes: AE-02 (Import), AE-03 con user005, AE-05, AE-06.
+en Power BI. Si Power BI se actualiza, rehacer el paso 0 de la guia. C04 completo 25-oct: AE-02 Import, AE-03 user005/user006 (Refresh tras cambiar usuario), AE-05, AE-06. AE-01 con actualizacion automatica de pagina (Format page > Page refresh).
+
+## C01-AE-05 CDC SQL Server (conector validado 25-oct; consumidor MERGE pendiente)
+Preparacion: SQL Server Agent corriendo en la EC2; conector `sb-cdc-sqlserver-core` y su Task 0 en Running (SMM > Connect).
+Antes de la demo: confirmar que el driver sigue en `/var/lib/kafka_connect_jdbc/` de cada host de Connect (se pierde si un nodo se repara).
+Lecciones (25-oct): faltaba el driver JDBC (NoClassDefFoundError); JAAS PLAIN obligatorio por conector (producer.override.*);
+el historial de esquema no hereda la seguridad (schema.history.internal.producer/consumer.*); Kerberos via cm-agent keytab
+no funciono, se usa PLAIN (en MAYUSCULAS); politicas Ranger en el servicio Kafka del Data Hub; tras corregir, reiniciar la TAREA;
+topicos creados a mano (sin autocreacion); snapshot.isolation.mode=snapshot para no bloquear UPDATEs en SQL Server.
+Snapshot validado 17:05: 1M clientes en Kafka. UPDATE en vivo capturado con op=u (17:13). Pendiente: consumidor MERGE a Iceberg.
+
+## C01 Lakehouse (validado 25-oct)
+AE-02 misma consulta Hue (user006) y Python impyla en CAI; AE-03 CTAS/INSERT/UPDATE/DELETE/MERGE + DESCRIBE HISTORY (user002);
+AE-04 ADD COLUMNS/rename sin reescritura (user002); AE-07 DESCRIBE FORMATTED/HISTORY/SHOW FILES/COLUMN STATS (user001).
+Leccion: config.yaml impala.host_depto_a debe ser el host de impala-sib-a (404 con el viejo).

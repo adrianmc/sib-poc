@@ -98,7 +98,8 @@ def a_roles(pol):
 def cargar(archivo: Path):
     c = cfg()["datalake"]
     txt = (archivo.read_text().replace("__HIVE__", c["ranger_hive_service"]).replace("__TAG__", c["ranger_tag_service"])
-           .replace("__TRINO__", c.get("ranger_trino_service", "cm_trino")))
+           .replace("__TRINO__", c.get("ranger_trino_service", "cm_trino"))
+           .replace("__KAFKA__", c.get("ranger_kafka_service", "sibrd_kafka_kafka_03b5")))
     return a_roles(json.loads(txt))
 
 

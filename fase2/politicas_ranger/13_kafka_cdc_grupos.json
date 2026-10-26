@@ -1,0 +1,36 @@
+{
+  "service": "__KAFKA__",
+  "name": "sb_13_kafka_cdc_grupos",
+  "policyType": 0,
+  "isEnabled": true,
+  "description": "Grupos de consumidores del historial de esquema de Debezium y del consumidor CDC",
+  "resources": {
+    "consumergroup": {
+      "values": [
+        "sbcore*",
+        "sb-cdc*"
+      ]
+    }
+  },
+  "policyItems": [
+    {
+      "groups": [
+        "sb_ingeniero"
+      ],
+      "accesses": [
+        {
+          "type": "consume",
+          "isAllowed": true
+        },
+        {
+          "type": "describe",
+          "isAllowed": true
+        },
+        {
+          "type": "delete",
+          "isAllowed": true
+        }
+      ]
+    }
+  ]
+}
