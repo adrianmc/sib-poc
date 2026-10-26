@@ -80,3 +80,9 @@ Snapshot validado 17:05: 1M clientes en Kafka. UPDATE en vivo capturado con op=u
 AE-02 misma consulta Hue (user006) y Python impyla en CAI; AE-03 CTAS/INSERT/UPDATE/DELETE/MERGE + DESCRIBE HISTORY (user002);
 AE-04 ADD COLUMNS/rename sin reescritura (user002); AE-07 DESCRIBE FORMATTED/HISTORY/SHOW FILES/COLUMN STATS (user001).
 Leccion: config.yaml impala.host_depto_a debe ser el host de impala-sib-a (404 con el viejo).
+
+## C05 CI/CD (en construccion 26-oct)
+Chequeo previo (laptop, en el repo): `git ls-remote --tags origin v1.0.0` y `git show v1.0.0:fase3/c02/c02_pipeline_sql.py | head -1`
+(si el segundo falla, el tag apunta a un commit viejo: `git tag -f v1.0.0 HEAD && git push -f origin v1.0.0`).
+Leccion (26-oct): v1.0.0 se creo antes del pipeline; el job fallo con SystemExit 2. ejecutar_version.py ahora hace fetch
+con --force, materializa por commit (no por tag) y valida que la version tenga el pipeline, con mensaje accionable.
