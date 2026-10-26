@@ -63,3 +63,4 @@ tablas. Si la SIB pide segregacion de datos (Pregunta 3), se parametriza la base
 | AE-04 | Aprobado: Job `sib-pipeline-prod` apunta a la version `<commit>` (worktree inmutable); fila en `sb_gov.despliegues` |
 | AE-05 | Actions > sb-cicd > Run workflow con `rollback_ref = v1.0.0`: el Job vuelve a esa version inmutable; `sb_gov.despliegues` conserva ambas |
 | AE-06 | `c05_versionado_datos.sql` |
+# prueba CI/CD
