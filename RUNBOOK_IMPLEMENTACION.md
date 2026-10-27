@@ -249,8 +249,8 @@ Gate 1 = las 10 en verde.
 2. SMM > Connect > New Connector > Debezium SQL Server: pegar el `config` de `fase3/c01/cdc/debezium_sqlserver.json`
    (sin la clave `_notas`; dejar solo el juego 1.x o 2.x que aplique). Estado esperado: RUNNING.
 3. SMM > Topics: aparecen los topicos de `dbo.clientes`, `dbo.cuentas` y `dbo.creditos` con mensajes del snapshot inicial.
-4. Consumidor `fase3/c01/cdc/c01_ae05_cdc_spark.py` (MERGE en Iceberg). CDE bloqueado: se define donde corre en este bloque
-   (sesion Spark de Cloudera AI).
+4. Consumidor (sin Spark/CDE): Terminal de CAI `python fase3/c01/cdc/c01_ae05_cdc_consumidor.py` (micro-lotes + MERGE
+   en Impala; requiere `kafka.brokers` y `kafka.ca_pem` = CA de FreeIPA). `c01_ae05_cdc_spark.py` queda como referencia CDE.
 5. Esperar el snapshot (HUE): `REFRESH sb_curated.clientes; SELECT COUNT(*) FROM sb_curated.clientes;` = 1.000.000.
 6. Prueba (WIN SSMS, base sbcore): `fase3/c01/cdc/c01_ae05_generar_cambios.sql`. Luego en HUE las consultas comentadas del mismo archivo.
 Valida: solo cambian los ids 10, 20, 30, 40 y 9000001 (ver `cdc_ts`). Cubre: **C01-AE-05, PG-04**.

@@ -97,3 +97,20 @@ Runner: Python en C:\Program Files\Python\Python311 debe estar en C:\actions-run
 Estado C05 (26-oct): PR -> CI -> DEV -> merge -> TEST -> PROD funcionando (prod dfd61f5 EXITOSO). sb-prod quedo SIN required
 reviewers durante esa corrida (corregido despues: Required reviewers = adrianmc, sin Prevent self-review).
 Pendiente para el dry-run: captura de PROD en "Waiting for review" (AE-03) y rollback a v1.0.0 (AE-05) con Run workflow.
+
+## C06 IA/ML (26-oct)
+- AE-01 JOIN sobre PII enmascarada (user003 vs user001, mismos totales): validado.
+- AE-04 Python + MLflow: 500.000 filas desde snapshot Iceberg 4266263547230025387, AUC 0.8075; run con params, metricas,
+  tags (snapshot, commit, autor) y artefacto. AI Registry desplegado (requirio Manage Access MLUser + Synchronize Users);
+  el modelo se registra con metadata pero la version falla: "Failed to create model registry directory in storage"
+  (permiso de almacenamiento del registro). PENDIENTE 27-oct.
+- AE-03 R (glm): AUC 0.803, run glm-R en el mismo experimento.
+- AE-05 endpoint Models: Deployed tras 2 ajustes: build script fase3/c06/cdsw-build.sh (el build no hereda paquetes de
+  las sesiones: joblib/scikit-learn con la version EXACTA del entrenamiento) y artefacto en fase3/c06/modelo_riesgo.pkl
+  (el build excluye lo que esta en .gitignore: data/, *.joblib). Antes de desplegar: cp data/modelo_riesgo.joblib fase3/c06/modelo_riesgo.pkl
+- AE-05 VALIDADO 27-oct: Test en UI OK (prob 0.1994, APROBAR) con autenticacion activa. API key formato "x.y" (valor
+  largo completo). Carga 500 req / 10 hilos: 0 errores, p50 113 ms, p95 3121 ms, 9.4 req/s con 1 replica de 1 vCPU.
+  Narrativa: la cola p95 es por 1 sola replica; con 2-3 replicas baja (escalado horizontal desde Settings del modelo).
+  Fix aplicado: track_metric esta en cml.metrics_v1 (no en models_v1).
+- AE-04 COMPLETO 27-oct: version registrada en AI Registry tras dar acceso al machine user del registro en Ranger
+  cm_s3 > "all - bucket, path" (ambiente con RAZ). Sin RAZ seria IDBroker mapping del Machine User CRN.

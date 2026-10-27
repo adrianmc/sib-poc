@@ -1,0 +1,4 @@
+# Versiones EXACTAS de la sesion de entrenamiento (joblib/pickle exige la misma version de scikit-learn)
+# Obtener con: python -c "import sklearn,joblib;print(sklearn.__version__, joblib.__version__)"
+scikit-learn==CAMBIAR
+joblib==CAMBIAR
