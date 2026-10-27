@@ -30,8 +30,11 @@ on:
         description: "Rollback: tag o commit estable a redesplegar (ej. v1.0.0)"
         required: true
 
+# El checkout es SIEMPRE el codigo actual de main (herramientas de despliegue al dia); la version a desplegar
+# viaja como --version. En rollback, el tag (ej. v1.0.0) lo materializa ejecutar_version.py dentro de Cloudera AI.
+# (Leccion 27-oct: hacer checkout del tag viejo usaria un desplegar_cai.py antiguo, sin --via cola.)
 env:
-  REF: ${{ github.event.inputs.rollback_ref || github.sha }}
+  ROLLBACK: ${{ github.event.inputs.rollback_ref }}
 
 jobs:
   validar:
@@ -39,7 +42,7 @@ jobs:
     runs-on: [self-hosted, sb-poc]
     steps:
       - uses: actions/checkout@v5
-        with: { ref: "${{ env.REF }}", fetch-depth: 0 }
+        with: { fetch-depth: 0 }
       - name: Dependencias y configuracion
         env: { CONFIG_YAML: "${{ secrets.CONFIG_YAML }}" }
         run: |
@@ -64,7 +67,6 @@ jobs:
     environment: sb-dev
     steps:
       - uses: actions/checkout@v5
-        with: { ref: "${{ env.REF }}" }
       - name: Desplegar job CDE (dev) y verificar ejecucion
         env: { CONFIG_YAML: "${{ secrets.CONFIG_YAML }}" }
         run: |
@@ -82,12 +84,12 @@ jobs:
     environment: sb-test
     steps:
       - uses: actions/checkout@v5
-        with: { ref: "${{ env.REF }}" }
       - name: Desplegar job CDE (test) y verificar
         env: { CONFIG_YAML: "${{ secrets.CONFIG_YAML }}" }
         run: |
           python -c "import os; open('config/config.yaml','w').write(os.environ['CONFIG_YAML'])"
-          python fase3/c05/desplegar_cai.py --ambiente test --version $(git rev-parse --short=7 HEAD) --autor "${{ github.actor }}" --via cola
+          $v = if ($env:ROLLBACK) { $env:ROLLBACK } else { git rev-parse --short=7 HEAD }
+          python fase3/c05/desplegar_cai.py --ambiente test --version $v --autor "${{ github.actor }}" --via cola
       - name: Limpieza de credenciales en el runner
         if: always()
         run: Remove-Item config/config.yaml -ErrorAction SilentlyContinue
@@ -99,12 +101,12 @@ jobs:
     environment: sb-prod
     steps:
       - uses: actions/checkout@v5
-        with: { ref: "${{ env.REF }}" }
       - name: Desplegar job CDE (prod) y verificar
         env: { CONFIG_YAML: "${{ secrets.CONFIG_YAML }}" }
         run: |
           python -c "import os; open('config/config.yaml','w').write(os.environ['CONFIG_YAML'])"
-          python fase3/c05/desplegar_cai.py --ambiente prod --version $(git rev-parse --short=7 HEAD) --autor "${{ github.actor }}" --via cola
+          $v = if ($env:ROLLBACK) { $env:ROLLBACK } else { git rev-parse --short=7 HEAD }
+          python fase3/c05/desplegar_cai.py --ambiente prod --version $v --autor "${{ github.actor }}" --via cola
       - name: Limpieza de credenciales en el runner
         if: always()
         run: Remove-Item config/config.yaml -ErrorAction SilentlyContinue

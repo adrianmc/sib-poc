@@ -10,6 +10,7 @@ Estado: borrador. Version final el 28-oct; dry-run el 29-oct.
 - [ ] Variable lista: `B=$(python -c "from lib.sbpoc import cfg; print(cfg()['s3']['bucket'])")`
 - [ ] Las 3 IP de los NAT en el security group de Knox (y de CDW si aplica)
 - [ ] Hue abierto desde el VW correcto; una ventana de incognito por usuario de demo
+- [ ] EC2 SQL Server encendida ANTES que el Data Hub sibrd-kafka; despues en SMM > Connect revisar la tarea del conector sbcore: si esta FAILED ("No route to host" a 10.10.2.235:1433, quedo asi mientras la EC2 estaba apagada) -> Restart de la TAREA. Connect no reintenta solo
 - [ ] Si se muestra C05: API key nueva (vence en 1 dia) en el secret CONFIG_YAML de GitHub
 
 ## C02 Procesamiento (validado 22/23-oct) - ~8 min
@@ -67,14 +68,26 @@ mismo archivo y driver con el host de impala-sib-a funciona. Todas las consultas
 Lecciones (24-oct): el conector Impala de fabrica no habla HTTP (error "Unexpected response"); Hive LLAP ya no existe
 en Power BI. Si Power BI se actualiza, rehacer el paso 0 de la guia. C04 completo 25-oct: AE-02 Import, AE-03 user005/user006 (Refresh tras cambiar usuario), AE-05, AE-06. AE-01 con actualizacion automatica de pagina (Format page > Page refresh).
 
-## C01-AE-05 CDC SQL Server (conector validado 25-oct; consumidor MERGE pendiente)
+## C01-AE-05 CDC SQL Server (COMPLETO 27-oct: SQL Server -> Debezium -> Kafka -> MERGE Iceberg)
 Preparacion: SQL Server Agent corriendo en la EC2; conector `sb-cdc-sqlserver-core` y su Task 0 en Running (SMM > Connect).
 Antes de la demo: confirmar que el driver sigue en `/var/lib/kafka_connect_jdbc/` de cada host de Connect (se pierde si un nodo se repara).
 Lecciones (25-oct): faltaba el driver JDBC (NoClassDefFoundError); JAAS PLAIN obligatorio por conector (producer.override.*);
 el historial de esquema no hereda la seguridad (schema.history.internal.producer/consumer.*); Kerberos via cm-agent keytab
 no funciono, se usa PLAIN (en MAYUSCULAS); politicas Ranger en el servicio Kafka del Data Hub; tras corregir, reiniciar la TAREA;
 topicos creados a mano (sin autocreacion); snapshot.isolation.mode=snapshot para no bloquear UPDATEs en SQL Server.
-Snapshot validado 17:05: 1M clientes en Kafka. UPDATE en vivo capturado con op=u (17:13). Pendiente: consumidor MERGE a Iceberg.
+Snapshot validado 17:05: 1M clientes en Kafka. UPDATE en vivo capturado con op=u (17:13).
+VALIDADO 27-oct: consumidor `python fase3/c01/cdc/c01_ae05_cdc_consumidor.py` (Terminal CAI, `pip install kafka-python`,
+CA de FreeIPA en config/datahub-ca.pem). c01_ae05_generar_cambios.sql en SSMS -> log
+"sb_curated.clientes: 5 eventos -> MERGE {'u': 3, 'c': 1, 'd': 1} en 5.6 s"; en Hue 10/20/30 PYME y 9000001 con cdc_ts nuevo, 40 eliminado.
+| # | Accion | Se ve |
+|---|---|---|
+| 1 | Terminal CAI: arrancar el consumidor ANTES de tocar SQL Server | "Consumidor CDC activo" |
+| 2 | SSMS: ejecutar c01_ae05_generar_cambios.sql | 3 UPDATE, 1 INSERT, 1 DELETE en origen |
+| 3 | Terminal: esperar la linea MERGE (15-30 s) | MERGE {'u': 3, 'c': 1, 'd': 1} |
+| 4 | Hue: SELECT de ids 10,20,30,40,9000001 + DESCRIBE HISTORY | cdc_ts de hoy, 40 ausente, snapshot nuevo |
+Lecciones (27-oct): si la EC2 estuvo apagada, la tarea de Debezium queda FAILED ("No route to host") y Connect no reintenta:
+Restart de la TAREA; retoma desde su offset y publica lo pendiente (CDC de SQL Server retiene 3 dias). La EC2 en UTC es normal.
+Para repetir la demo: el INSERT de 9000001 falla si ya existe; antes borrar 9000001 en SSMS (o cambiar el id) y usar otros ids en el UPDATE.
 
 ## C01 Lakehouse (validado 25-oct)
 AE-02 misma consulta Hue (user006) y Python impyla en CAI; AE-03 CTAS/INSERT/UPDATE/DELETE/MERGE + DESCRIBE HISTORY (user002);
@@ -97,6 +110,8 @@ Runner: Python en C:\Program Files\Python\Python311 debe estar en C:\actions-run
 Estado C05 (26-oct): PR -> CI -> DEV -> merge -> TEST -> PROD funcionando (prod dfd61f5 EXITOSO). sb-prod quedo SIN required
 reviewers durante esa corrida (corregido despues: Required reviewers = adrianmc, sin Prevent self-review).
 Pendiente para el dry-run: captura de PROD en "Waiting for review" (AE-03) y rollback a v1.0.0 (AE-05) con Run workflow.
+Fix 27-oct (kit v19): el workflow hace checkout SIEMPRE de main y pasa el tag como --version (antes hacia checkout del
+tag viejo y usaba un desplegar_cai.py sin --via cola). Un solo Run workflow con v1.0.0 cubre AE-05 en TEST y AE-03 + AE-05 en PROD.
 
 ## C06 IA/ML (26-oct)
 - AE-01 JOIN sobre PII enmascarada (user003 vs user001, mismos totales): validado.
