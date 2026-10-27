@@ -51,7 +51,7 @@ Prerrequisito: la Application `sib-despachador` en Running antes de abrir el PR.
 - [ ] Desde el EC2: `python fase3/c05/validar_calidad.py` con config.yaml local funciona (descarta red y credenciales)
 - [ ] PR de prueba: `validar` y `desplegar_dev` en verde; `sb_gov.despliegues` con fila dev
 - [ ] Merge de prueba: `desplegar_prod` queda en Waiting for review y el ejecutor NO puede aprobar
-- [ ] Rollback de prueba a `v1.0.0` termina en verde
+- [x] Rollback de prueba a `v1.0.0` termina en verde (27-oct, run #16)
 
 Nota sobre segregacion: dev/test/prod despliegan jobs distintos (`sb-pipeline-batch-<amb>`) pero hoy escriben las mismas
 tablas. Si la SIB pide segregacion de datos (Pregunta 3), se parametriza la base destino por ambiente.

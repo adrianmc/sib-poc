@@ -87,6 +87,8 @@ CA de FreeIPA en config/datahub-ca.pem). c01_ae05_generar_cambios.sql en SSMS ->
 | 4 | Hue: SELECT de ids 10,20,30,40,9000001 + DESCRIBE HISTORY | cdc_ts de hoy, 40 ausente, snapshot nuevo |
 Lecciones (27-oct): si la EC2 estuvo apagada, la tarea de Debezium queda FAILED ("No route to host") y Connect no reintenta:
 Restart de la TAREA; retoma desde su offset y publica lo pendiente (CDC de SQL Server retiene 3 dias). La EC2 en UTC es normal.
+OJO ORDEN: cualquier corrida de sib-pipeline (C02, C05, C08-AE-06) recarga sb_curated.clientes desde sb_raw (TRUNCATE + INSERT)
+y borra lo aplicado por CDC: mostrar CDC DESPUES de esas demos. Declarar: en produccion el paso 1 seria MERGE incremental.
 Para repetir la demo: el INSERT de 9000001 falla si ya existe; antes borrar 9000001 en SSMS (o cambiar el id) y usar otros ids en el UPDATE.
 
 ## C01 Lakehouse (validado 25-oct)
@@ -109,7 +111,8 @@ Secuencia demo C05: PR (CI + DEV) -> merge (TEST automatico) -> PROD "Waiting fo
 Runner: Python en C:\Program Files\Python\Python311 debe estar en C:\actions-runner\.path (UNA sola linea) y en el PATH de maquina.
 Estado C05 (26-oct): PR -> CI -> DEV -> merge -> TEST -> PROD funcionando (prod dfd61f5 EXITOSO). sb-prod quedo SIN required
 reviewers durante esa corrida (corregido despues: Required reviewers = adrianmc, sin Prevent self-review).
-Pendiente para el dry-run: captura de PROD en "Waiting for review" (AE-03) y rollback a v1.0.0 (AE-05) con Run workflow.
+C05 COMPLETO 27-oct (run #16, workflow_dispatch rollback_ref=v1.0.0): CI verde, DEV omitido, TEST verde (4m 11s),
+PROD retenido en "Waiting for review" (AE-03), aprobado por adrianmc y desplegado (AE-05). Evidencias capturadas.
 Fix 27-oct (kit v19): el workflow hace checkout SIEMPRE de main y pasa el tag como --version (antes hacia checkout del
 tag viejo y usaba un desplegar_cai.py sin --via cola). Un solo Run workflow con v1.0.0 cubre AE-05 en TEST y AE-03 + AE-05 en PROD.
 
@@ -129,3 +132,14 @@ tag viejo y usaba un desplegar_cai.py sin --via cola). Un solo Run workflow con 
   Fix aplicado: track_metric esta en cml.metrics_v1 (no en models_v1).
 - AE-04 COMPLETO 27-oct: version registrada en AI Registry tras dar acceso al machine user del registro en Ranger
   cm_s3 > "all - bucket, path" (ambiente con RAZ). Sin RAZ seria IDBroker mapping del Machine User CRN.
+
+## C08 Gobernanza (en curso 27-oct)
+| # | Accion | Se ve | Prueba |
+|---|---|---|---|
+| 1 | CAI Terminal: `python fase3/c08/c08_registro_activos_y_linaje_bi.py` | 200/409; Atlas: Business Metadata Gobierno_SB en clientes/creditos; linaje SQL Server -> curada -> vista -> dashboard | PRE-01/02, AE-01/02 |
+| 2 | Hue (user002): parte AE-03 de c08_impacto_y_corrupcion.sql | vista dependiente falla tras el rename; Atlas la muestra downstream | AE-03 |
+| 3 | Hue (user002): corrupcion de entidad 7 + Job sib-pipeline + SELECT | 'ENTIDAD CORRUPTA - DEMO' en transacciones y Power BI; Ranger audit del UPDATE; rollback | AE-06 |
+| 4 | Ranger > Audit > Access (user005) | Allowed y Denied | AE-04 |
+| 5 | AWS: bucket WORM + delete -> AccessDenied | inmutabilidad | AE-05, PRE-05 |
+| 6 | Data Sharing de sb_share.clientes_externo + revocar | lee, luego denegado | AE-07 |
+| 7 | c08_solicitud_acceso.py solicitar/listar/aprobar | usuario consulta tras ~30 s | AE-08 (workaround) |

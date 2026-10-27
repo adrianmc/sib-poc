@@ -15,14 +15,16 @@ ALTER TABLE sb_sandbox_depto_a.entidades_copia CHANGE COLUMN nombre nombre_entid
 SELECT * FROM sb_sandbox_depto_a.v_tx_por_entidad LIMIT 5;      -- falla: la vista dependiente quedo afectada
 -- Atlas muestra v_tx_por_entidad como dependiente de entidades_copia (downstream) = objeto impactado.
 
--- AE-06: corrupcion de dato maestro (usuario sb_ing01, queda auditado)
+-- AE-06: corrupcion de dato maestro (en Hue como user002 'ingeniero': queda auditado con su nombre)
 DESCRIBE HISTORY sb_curated.entidades_financieras;             -- anotar snapshot actual para revertir
 UPDATE sb_curated.entidades_financieras SET nombre = 'ENTIDAD CORRUPTA - DEMO' WHERE id_entidad = 7;
--- Re-ejecutar el pipeline (CDE: sb-pipeline-batch) y mostrar la propagacion:
+-- Re-ejecutar el pipeline: Cloudera AI > Jobs > sib-pipeline > Run (~4 min; el paso 3 re-enriquece transacciones)
+-- OJO: el paso 1 recarga sb_curated.clientes desde sb_raw (TRUNCATE + INSERT) y borra lo aplicado por CDC (C01-AE-05).
+-- En la demo: hacer C08-AE-06 ANTES de la demo de CDC, o repetir el CDC despues. Y mostrar la propagacion:
 SELECT nombre_entidad, COUNT(*) FROM sb_curated.transacciones WHERE id_entidad_destino = 7 GROUP BY nombre_entidad;
 -- Power BI (DirectQuery, visual 'Transacciones por entidad' sobre sb_curated.transacciones) muestra 'ENTIDAD CORRUPTA - DEMO'. Atlas Lineage muestra el recorrido.
--- Ranger > Audit > Access: filtrar usuario sb_ing01, recurso sb_curated/entidades_financieras, accion update.
+-- Ranger > Audit > Access: filtrar usuario user002, recurso sb_curated/entidades_financieras, accion update.
 
 -- Remediacion: rollback del maestro y reproceso
 ALTER TABLE sb_curated.entidades_financieras EXECUTE ROLLBACK(CAMBIAR_SNAPSHOT_ANTERIOR);
--- Re-ejecutar sb-pipeline-batch (idempotente) y validar que el nombre correcto regresa.
+-- Re-ejecutar el Job sib-pipeline (idempotente) y validar que el nombre correcto regresa con el mismo SELECT.

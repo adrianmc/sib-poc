@@ -3,7 +3,7 @@ C08-PRE-01/02, AE-01, AE-02, AE-06: completa en Atlas lo que no se captura autom
   - Metadata de negocio (Business Metadata "Gobierno_SB": dominio, propietario de negocio, criticidad) + owner.
   - Tramo de ORIGEN del linaje: tablas SQL Server (base sbcore) -> proceso CDC -> tablas curadas.
   - Tramo de CONSUMO del linaje: tablas/vistas -> refresh -> dashboard Power BI; documentos -> indexacion -> agente RAG.
-El tramo intermedio (Spark en CDE, Impala/Hive: curada -> consumible) lo captura Atlas automaticamente.
+El tramo intermedio (Impala: raw -> curada -> consumible, pipeline sib-pipeline) lo captura Atlas automaticamente.
 Honestidad: los tramos de origen y consumo son registro por API (workaround, desarrollo minimo). El linaje
 automatico hasta BI y desde las bases origen requiere Octopai o el escaner de IDMC.
   python fase3/c08/c08_registro_activos_y_linaje_bi.py
@@ -20,6 +20,8 @@ from lib.sbpoc import atlas_guid, cfg, knox  # noqa: E402
 
 S, ATLAS = knox("atlas")
 SUF = cfg()["datalake"]["atlas_sufijo_cluster"]
+ADMIN = cfg()["usuarios"]["admin"]["user"]          # user001 en el ambiente
+CUSTODIO = cfg()["usuarios"]["ingeniero"]["user"]   # user002 en el ambiente
 
 TIPOS = {"entityDefs": [
     {"name": "powerbi_dashboard", "superTypes": ["DataSet"], "attributeDefs": [
@@ -40,23 +42,26 @@ METADATA_NEGOCIO = {"businessMetadataDefs": [{"name": "Gobierno_SB", "descriptio
                       for n in ["dominio", "propietario_negocio", "custodio", "criticidad"]]}]}
 ACTIVOS_NEGOCIO = {
     "sb_curated.clientes": {"dominio": "Clientes", "propietario_negocio": "Direccion de Supervision",
-                            "custodio": "sb_ing01", "criticidad": "ALTA"},
+                            "custodio": CUSTODIO, "criticidad": "ALTA"},
     "sb_curated.creditos": {"dominio": "Riesgo de Credito", "propietario_negocio": "Direccion de Riesgo",
-                            "custodio": "sb_ing01", "criticidad": "ALTA"},
+                            "custodio": CUSTODIO, "criticidad": "ALTA"},
     "sb_curated.entidades_financieras": {"dominio": "Datos Maestros", "propietario_negocio": "Direccion de Registro",
-                                         "custodio": "sb_ing01", "criticidad": "ALTA"},
+                                         "custodio": CUSTODIO, "criticidad": "ALTA"},
 }
 
 
-def guid_tabla(nombre):
+def guid_tabla(nombre, obligatoria=True):
     guid, _ = atlas_guid(S, ATLAS, f"{nombre}@{SUF}", "table")
+    if not guid and obligatoria:
+        raise RuntimeError(f"Tabla no encontrada en Atlas: {nombre}@{SUF} (revisar atlas_sufijo_cluster en config o "
+                           f"que la tabla exista; Atlas la registra al crearla)")
     if not guid:
-        raise RuntimeError(f"Tabla no encontrada en Atlas: {nombre}@{SUF}")
+        print(f"  AVISO: {nombre} no esta en Atlas, se omite de este tramo")
     return guid
 
 
 def crear(tipo, qn, nombre, extra=None):
-    ent = {"typeName": tipo, "attributes": {"qualifiedName": qn, "name": nombre, "owner": "sb_admin01", **(extra or {})}}
+    ent = {"typeName": tipo, "attributes": {"qualifiedName": qn, "name": nombre, "owner": ADMIN, **(extra or {})}}
     r = S.post(f"{ATLAS}/entity", json={"entity": ent})
     print(f"{tipo} {nombre}: {r.status_code}")
     return r
@@ -76,8 +81,8 @@ def main():
 
     # Tramo de origen: SQL Server sbcore (CDC Debezium; creditos incremental NiFi) hacia la capa curada
     for qn, nombre, sistema, mecanismo, destino in [
-            ("sqlserver://sbcore/dbo.clientes", "dbo.clientes", "SQL Server core (EC2)", "CDC Debezium + Spark MERGE", "sb_curated.clientes"),
-            ("sqlserver://sbcore/dbo.cuentas", "dbo.cuentas", "SQL Server core (EC2)", "CDC Debezium + Spark MERGE", "sb_curated.cuentas"),
+            ("sqlserver://sbcore/dbo.clientes", "dbo.clientes", "SQL Server core (EC2)", "CDC Debezium -> Kafka -> MERGE Impala (consumidor en Cloudera AI)", "sb_curated.clientes"),
+            ("sqlserver://sbcore/dbo.cuentas", "dbo.cuentas", "SQL Server core (EC2)", "CDC Debezium -> Kafka -> MERGE Impala (consumidor en Cloudera AI)", "sb_curated.cuentas"),
             ("sqlserver://sbcore/dbo.creditos", "dbo.creditos", "SQL Server core (EC2)", "Extraccion a S3 + pipeline SQL (sib-pipeline)", "sb_curated.creditos")]:
         crear("tabla_sistema_origen", qn, nombre, {"sistema": sistema})
         proc = {"typeName": "proceso_ingesta", "attributes": {
@@ -90,9 +95,9 @@ def main():
           {"workspace": "SB PoC", "description": "Reporte Power BI sobre v_cartera_crediticia y morosidad oficial"})
     proc = {"typeName": "powerbi_refresh", "attributes": {
         "qualifiedName": "pbi://sb-poc/refresh/Tablero_Cartera_Crediticia", "name": "Refresh Tablero Cartera",
-        "inputs": [{"guid": guid_tabla("sb_curated.transacciones")},
-                   {"guid": guid_tabla("sb_consumption.v_cartera_crediticia")},
-                   {"guid": guid_tabla("sb_consumption.m_indice_morosidad_oficial")}],
+        "inputs": [{"guid": g} for g in (guid_tabla(t, obligatoria=False) for t in (
+                   "sb_curated.transacciones", "sb_consumption.v_cartera_crediticia",
+                   "sb_consumption.m_indice_morosidad_oficial")) if g],
         "outputs": [{"typeName": "powerbi_dashboard",
                      "uniqueAttributes": {"qualifiedName": "pbi://sb-poc/Tablero_Cartera_Crediticia"}}]}}
     print("Linaje vistas -> dashboard:", S.post(f"{ATLAS}/entity", json={"entity": proc}).status_code)
@@ -104,7 +109,8 @@ def main():
         crear("documento_normativo", qn, f"{d}.pdf")
         docs.append({"typeName": "documento_normativo", "uniqueAttributes": {"qualifiedName": qn}})
     crear("ai_agente", "agente://sb-poc/asistente_normativo", "Asistente normativo RAG",
-          {"modelo_llm": cfg()["inferencia"]["llm_modelo"], "description": "Aplicacion CML fase3/c06/rag/app.py"})
+          {"modelo_llm": cfg().get("inferencia", {}).get("llm_modelo", "por definir"),
+           "description": "Asistente RAG en Cloudera AI (C06)"})
     proc_rag = {"typeName": "rag_indexacion", "attributes": {
         "qualifiedName": "agente://sb-poc/indexacion", "name": "Indexacion RAG", "inputs": docs,
         "outputs": [{"typeName": "ai_agente", "uniqueAttributes": {"qualifiedName": "agente://sb-poc/asistente_normativo"}}]}}
