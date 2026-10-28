@@ -142,7 +142,7 @@ En cada ventana (Hue, Impala): `SELECT identificacion, nombre, region FROM sb_cu
 Luego Ranger > Audit > Access filtrando user005: Allowed y Denied (C07-AE-01 y C08-AE-04).
 Narrativa: permisos con roles de Ranger, atributos como roles, PII/CONFIDENCIAL por tags de Atlas.
 
-## C08 Gobierno [OK 27/28-oct; AE-07 PEND dry-run] ~40 min
+## C08 Gobierno [OK 27/28-oct, AE-07 plan C validado 28-oct] ~40 min
 | # | Accion | Se ve | Prueba |
 |---|---|---|---|
 | 1 | Atlas: `sb_curated.clientes` > Properties y Lineage; `Tablero Cartera Crediticia` > Lineage; `Asistente normativo RAG` > Lineage | Gobierno_SB (dominio, propietario, custodio user002, criticidad); linaje SQL Server -> curada -> vistas -> tablero; documentos -> agente | PRE-01/02, AE-01/02 |
@@ -151,7 +151,7 @@ Narrativa: permisos con roles de Ranger, atributos como roles, PII/CONFIDENCIAL 
 | 4 | Ranger > Audit > Access: user002, entidades_financieras | el UPDATE con usuario, fecha y recurso | AE-04, AE-06 |
 | 5 | `ALTER TABLE sb_curated.entidades_financieras EXECUTE ROLLBACK(<snapshot>)` + sib-pipeline + SELECT | nombre original de vuelta | AE-06 |
 | 6 | CloudShell: delete-object de una version del bucket WORM, sin y con `--bypass-governance-retention` | AccessDenied en ambos | AE-05, PRE-05 |
-| 7 | Portal sib-accesos: user011 (ente externo) pide sb_share.clientes_externo; Aprobar 7 dias; Power BI en la EC2 con user011 lee la tabla enmascarada; intento sobre sb_curated.clientes denegado; Revocar; Refresh -> error | acceso SQL temporal a una sola tabla, auditado | AE-07 |
+| 7 | Power BI (EC2) con user011: navegador sin tablas. Portal sib-accesos: user011 pide sb_share.clientes_externo, Aprobar 7 dias; Power BI ve solo esa tabla, enmascarada; Revocar; Refresh -> error | acceso SQL temporal a una sola tabla, auditado | AE-07 |
 | 8 | Portal sib-accesos: user005 solicita sb_raw.entidades_financieras; Aprobar 7 dias; Hue user005 lee; Revocar; denegado | bandeja, historial, aprobador real (Remote-User); Ranger > Audit > Admin | AE-08 |
 Declaraciones:
 - AE-01: Atlas es el mecanismo compatible; la sincronizacion hacia IDMC la hace el escaner de Informatica.
