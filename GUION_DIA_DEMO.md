@@ -139,6 +139,10 @@ VALIDADO 27-oct: pasos 1-3. Registro Atlas todo 200/204 (tipos, Gobierno_SB en 3
 "Could not resolve column/field reference: 'e.nombre'". AE-06: UPDATE entidad 7 -> sib-pipeline -> 'ENTIDAD CORRUPTA - DEMO'
 en Hue y Power BI (DirectQuery sobre sb_curated.transacciones) -> Ranger audit del UPDATE -> EXECUTE ROLLBACK(snapshot)
 -> sib-pipeline -> nombre original de vuelta.
+AE-08 VALIDADO 28-oct con el portal sib-accesos: aprobador real tomado de la sesion de CAI (Remote-User = amiranda),
+politica sb_solicitud_<id> con vigencia de 7 dias, user005 lee sb_raw.entidades_financieras, revocar retira el acceso.
+Leccion: el contenedor de CAI corre en UTC; la vigencia se envia en hora de Costa Rica (UTC-6). Antes la politica nacia
+6 h en el futuro y el SELECT seguia denegado. Prerrequisito: IP de salida de CAI en el security group de Knox (443).
 Para repetir AE-03: DROP VIEW sb_sandbox_depto_a.v_tx_por_entidad; DROP TABLE sb_sandbox_depto_a.entidades_copia;
 | # | Accion | Se ve | Prueba |
 |---|---|---|---|
