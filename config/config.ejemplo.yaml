@@ -25,7 +25,7 @@ usuarios:
   analista2:   {user: sb_analista02, password: CAMBIAR}   # region NORTE, CON acceso confidencial
   auditor:     {user: sb_auditor01,  password: CAMBIAR}
   mcp_restringido: {user: sb_mcp01,  password: CAMBIAR}
-  externo:     {user: sb_externo01,  password: CAMBIAR}
+  externo:     {user: user011,       password: CAMBIAR}   # ente externo C08-AE-07 (sin roles de plataforma)
 
 datalake:
   # Base Knox del Data Lake: https://<gateway-host>/<nombre-datalake>/cdp-proxy-api

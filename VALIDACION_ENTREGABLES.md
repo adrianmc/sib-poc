@@ -143,7 +143,7 @@ Fecha de revision: 2026-10-05. Base: criterios de exito de la plantilla (PG, C01
 | AE-04 logs de acceso | Ranger Audit | OK | - |
 | AE-05 inmutabilidad de logs | c08_auditoria (rediseñado) | OK via AWS | Replica a bucket WORM, sin tocar el bucket de CDP |
 | AE-06 dato maestro corrupto hasta dashboard + logs | c08_impacto | OK workaround | - |
-| AE-07 externo sin acceso a plataforma, enmascarado, revocado | c08_ae07_lectura_externo.py + IAM sib-externo (plan B) | OK workaround | Tenant sin entitlement CDP_DATA_SHARE_ADMIN (28-oct): lectura directa Iceberg en S3 con IAM temporal y revocable; nativo = Data Catalog > Data Sharing |
+| AE-07 externo sin acceso a plataforma, enmascarado, revocado | Portal sib-accesos + user011 + sb_share.clientes_externo (plan C) | OK workaround | Tenant sin entitlement CDP_DATA_SHARE_ADMIN y sin permiso IAM:CreateUser (28-oct): SQL temporal a una tabla enmascarada, revocable y auditado; nativo = Data Catalog > Data Sharing |
 | AE-08 solicitud de acceso via catalogo | c08_solicitud_acceso | NO SE PUEDE nativo | Workaround fuera del catalogo |
 
 ## C09 Administracion y FinOps

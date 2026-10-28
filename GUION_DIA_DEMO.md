@@ -120,7 +120,7 @@ Preparacion especifica:
 - [ ] Repetibilidad C08-AE-03: `DROP VIEW IF EXISTS sb_sandbox_depto_a.v_tx_por_entidad; DROP TABLE IF EXISTS sb_sandbox_depto_a.entidades_copia;`
 - [ ] Power BI: pagina con la tabla `nombre_entidad` filtrada por `id_entidad_destino = 7`
 - [ ] AWS CloudShell abierto con las variables B/K/V de la guia `c08_auditoria_e_inmutabilidad.md`
-- [ ] Laptop: perfil `sib-externo` con la access key ACTIVA (reactivar si se desactivo en el ensayo)
+- [ ] Power BI en la EC2: conexion a sb_share.clientes_externo con user011 (credencial guardada aparte de user006)
 - [ ] Portal sib-accesos sin solicitudes pendientes de ensayos
 
 | Min | Bloque | Contenido |
@@ -151,15 +151,18 @@ Narrativa: permisos con roles de Ranger, atributos como roles, PII/CONFIDENCIAL 
 | 4 | Ranger > Audit > Access: user002, entidades_financieras | el UPDATE con usuario, fecha y recurso | AE-04, AE-06 |
 | 5 | `ALTER TABLE sb_curated.entidades_financieras EXECUTE ROLLBACK(<snapshot>)` + sib-pipeline + SELECT | nombre original de vuelta | AE-06 |
 | 6 | CloudShell: delete-object de una version del bucket WORM, sin y con `--bypass-governance-retention` | AccessDenied en ambos | AE-05, PRE-05 |
-| 7 | Laptop (perfil sib-externo): `python fase3/c08/c08_ae07_lectura_externo.py --metadata <metadata_location>`; IAM > Deactivate de la key; repetir | lee la tabla enmascarada; luego AccessDenied | AE-07, C01-AE-06 |
+| 7 | Portal sib-accesos: user011 (ente externo) pide sb_share.clientes_externo; Aprobar 7 dias; Power BI en la EC2 con user011 lee la tabla enmascarada; intento sobre sb_curated.clientes denegado; Revocar; Refresh -> error | acceso SQL temporal a una sola tabla, auditado | AE-07 |
 | 8 | Portal sib-accesos: user005 solicita sb_raw.entidades_financieras; Aprobar 7 dias; Hue user005 lee; Revocar; denegado | bandeja, historial, aprobador real (Remote-User); Ranger > Audit > Admin | AE-08 |
 Declaraciones:
 - AE-01: Atlas es el mecanismo compatible; la sincronizacion hacia IDMC la hace el escaner de Informatica.
 - AE-02: los tramos de origen (SQL Server) y de consumo (Power BI, RAG) se registran por API; el intermedio es automatico.
 - AE-05: inmutabilidad por S3 Object Lock (AWS), no por Ranger. En la PoC GOVERNANCE + bucket policy; en produccion
   COMPLIANCE (ni root borra). Matiz: un "Delete" sin version solo agrega un delete marker.
-- AE-07: el tenant no tiene el entitlement CDP_DATA_SHARE_ADMIN (Data Catalog sin menu Data Sharing). Plan B: credencial
-  IAM de solo lectura sobre la tabla enmascarada, con vencimiento automatico y revocable. Nativo: Data Catalog > Data Sharing.
+- AE-07: el tenant no tiene el entitlement CDP_DATA_SHARE_ADMIN (Data Catalog sin menu Data Sharing; solicitado 28-oct) y la
+  cuenta AWS no permite crear usuarios IAM. Plan C: user011 como ente externo, sin roles en la plataforma (no entra a Hue,
+  CAI ni Data Catalog), solo SQL desde su herramienta sobre la tabla enmascarada, con politica Ranger temporal y revocable
+  (mismo portal de AE-08). Declarar: el externo tiene una identidad CDP limitada; "sin cuenta" estricto = Data Sharing nativo.
+  C01-AE-06 (motor externo sin exportar) queda [DECL] hasta el entitlement (fase3/c08/c08_ae07_lectura_externo.py listo).
 - AE-08: workaround (el catalogo no trae flujo de solicitud); en produccion ServiceNow, Power Automate o IDMC Marketplace.
 Lecciones: el contenedor de CAI corre en UTC (la vigencia de Ranger se envia en hora de Costa Rica); los audits de Ranger
 estan en `<storage location base>/ranger/audit/` (ruta data, no logs); el paso 3 y el 5 corren el pipeline dos veces (~8 min).
@@ -229,4 +232,4 @@ costos) los presenta el AE con valores oficiales.
 - Detener el consumidor CDC (Ctrl+C) y cerrar las sesiones de CAI
 - Suspender el VW, apagar el ambiente y la EC2
 - Al cierre de la PoC: rotar las contrasenas de user001, user002 y sbcore_dbz; quitar la bucket policy del bucket WORM;
-  borrar el usuario IAM sib-externo; revisar que `config.yaml` nunca se haya subido al repo
+  revocar las solicitudes abiertas del portal (user011); revisar que `config.yaml` nunca se haya subido al repo
