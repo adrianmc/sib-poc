@@ -148,4 +148,4 @@ Para repetir AE-03: DROP VIEW sb_sandbox_depto_a.v_tx_por_entidad; DROP TABLE sb
 | 4 | Ranger > Audit > Access (user005) | Allowed y Denied | AE-04 |
 | 5 | AWS: bucket WORM + delete -> AccessDenied | inmutabilidad | AE-05, PRE-05 |
 | 6 | Data Sharing de sb_share.clientes_externo + revocar | lee, luego denegado | AE-07 |
-| 7 | c08_solicitud_acceso.py solicitar/listar/aprobar | usuario consulta tras ~30 s | AE-08 (workaround) |
+| 7 | Application sib-accesos (fase3/c08/c08_portal_accesos.py): solicitar -> Aprobar (7 dias) -> Hue user005 lee sb_raw.entidades_financieras -> Revocar -> denegado. Plan B: c08_solicitud_acceso.py en Terminal | bandeja de pendientes, historial, Ranger > Audit > Admin | AE-08 (workaround) |
