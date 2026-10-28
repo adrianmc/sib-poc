@@ -1,0 +1,22 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "LeerSoloLaTablaCompartida",
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::CAMBIAR_BUCKET/CAMBIAR_RUTA_TABLA/*",
+      "Condition": {"DateLessThan": {"aws:CurrentTime": "2026-11-07T23:59:59Z"}}
+    },
+    {
+      "Sid": "ListarSoloEsePrefijo",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::CAMBIAR_BUCKET",
+      "Condition": {
+        "StringLike": {"s3:prefix": "CAMBIAR_RUTA_TABLA/*"},
+        "DateLessThan": {"aws:CurrentTime": "2026-11-07T23:59:59Z"}
+      }
+    }
+  ]
+}

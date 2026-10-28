@@ -1,155 +1,232 @@
-# Guion operativo del dia de la demo (se completa a medida que cada bloque se valida en vivo)
+# Guion operativo de la demo SIB: 3 sesiones de 1.5 h
 
-Estado: borrador. Version final el 28-oct; dry-run el 29-oct.
+Estado: VERSION FINAL 28-oct (dry-run 29-oct). Orden definido por el equipo Cloudera.
+Convenciones: [OK] validado en vivo, [PEND] por validar en el dry-run, [DECL] se declara sin demostrar.
+Usuarios: user001 admin, user002 ingeniero, user003 cientifico, user005 analista CENTRAL sin confidencial,
+user006 analista NORTE con confidencial, user008 MCP restringido.
 
-## Checklist general antes de cada sesion
+| Sesion | Tema | Bloques | Hilo narrativo |
+|---|---|---|---|
+| 1 | Plataforma y datos | C01, C03, C02, C04, C01-AE-05 CDC | Del origen SQL Server al tablero |
+| 2 | Seguridad, gobierno y DevOps | C07, C08, C05 | Quien ve que, como se audita y como se despliega |
+| 3 | IA y operacion | C06, C09 | Del dato gobernado al modelo en produccion, y lo que cuesta operarlo |
+
+---
+
+## Checklist general (antes de CADA sesion)
 - [ ] Encender ambiente, Data Lake y Data Hubs al menos 1 h antes (arranque medido: >= 1 h)
-- [ ] Data Lake, FreeIPA y Data Hubs en Running/Healthy
-- [ ] Impala VW `impala-sib-a` encendido (el VW anterior quedo con el catalogd danado: no usar)
-- [ ] Sesion de Cloudera AI abierta con Terminal; `cd /home/cdsw`
-- [ ] Variable lista: `B=$(python -c "from lib.sbpoc import cfg; print(cfg()['s3']['bucket'])")`
-- [ ] Las 3 IP de los NAT en el security group de Knox (y de CDW si aplica)
-- [ ] Hue abierto desde el VW correcto; una ventana de incognito por usuario de demo
-- [ ] EC2 SQL Server encendida ANTES que el Data Hub sibrd-kafka; despues en SMM > Connect revisar la tarea del conector sbcore: si esta FAILED ("No route to host" a 10.10.2.235:1433, quedo asi mientras la EC2 estaba apagada) -> Restart de la TAREA. Connect no reintenta solo
-- [ ] Si se muestra C05: API key nueva (vence en 1 dia) en el secret CONFIG_YAML de GitHub
+- [ ] EC2 Windows (SQL Server + Power BI + runner) encendida ANTES que el Data Hub sibrd-kafka
+- [ ] Data Lake, FreeIPA y Data Hubs en Running/Healthy; VW `impala-sib-a` encendido (no usar sibrd-impala: catalogd danado)
+- [ ] IP de salida de CAI (`curl -s https://checkip.amazonaws.com` en la Terminal) y las 3 IP de los NAT en el security group de Knox (443).
+      Sintoma si falta: timeout hacia `...dl-gateway...` (Ranger/Atlas por API)
+- [ ] Sesion de Cloudera AI con Terminal; `cd /home/cdsw`; variable `B=$(python -c "from lib.sbpoc import cfg; print(cfg()['s3']['bucket'])")`
+- [ ] Applications `sib-despachador` y `sib-accesos` en Running
+- [ ] Hue desde `impala-sib-a`; una ventana de incognito por usuario de la sesion
+- [ ] Plan B de cada bloque: capturas en `evidencias/<codigo>/`
 
-## C02 Procesamiento (validado 22/23-oct) - ~8 min
+---
 
-Preparacion (antes de la sesion):
-1. Job `sib-pipeline`, argumentos: `--version v1 --reintentos 3 --espera 180` (3 min entre intentos para poder explicar).
-2. Marcador ausente: `hdfs dfs -ls s3a://$B/sb/control/` debe estar vacio.
-3. Tener escritos en un bloc de notas:
-   - crear marcador: `echo x > /tmp/m && hdfs dfs -put -f /tmp/m s3a://$B/sb/control/fallar_paso_3`
-   - borrar marcador: `hdfs dfs -rm s3a://$B/sb/control/fallar_paso_3`
+# SESION 1: Plataforma y datos (90 min)
 
-Secuencia:
+Preparacion especifica:
+- [ ] SMM > Connect: conector `sb-cdc-sqlserver-core` y su TAREA en Running. Si esta FAILED ("No route to host" a
+      10.10.2.235:1433, quedo asi mientras la EC2 estaba apagada): Restart de la TAREA (Connect no reintenta solo)
+- [ ] Driver JDBC presente en `/var/lib/kafka_connect_jdbc/` de cada host de Connect (se pierde si un nodo se repara)
+- [ ] SQL Server Agent corriendo en la EC2
+- [ ] Repetibilidad del CDC: en SSMS `DELETE FROM sbcore.dbo.clientes WHERE id_cliente = 9000001;` (si existe)
+- [ ] Job `sib-pipeline` con argumentos `--version v1 --reintentos 3 --espera 180`; `hdfs dfs -ls s3a://$B/sb/control/` vacio
+- [ ] Power BI: .pbix abierto, conexion al host de `impala-sib-a`, usuario user006, pagina "AE-01" con Page refresh 5 s
+- [ ] Hue (user001): UPDATE +1000 y -1000 del id_credito ya escritos
+- [ ] C03: `python fase3/c03/c03_ingesta_alphavantage.py --desde-cache` corrido antes de la sesion
+
+| Min | Bloque | Contenido |
+|---|---|---|
+| 0-10 | Apertura | Arquitectura: SQL Server -> Kafka/CDC -> Lakehouse Iceberg (raw, curada, consumible) -> CDW/Power BI; SDX (Ranger, Atlas) transversal |
+| 10-25 | C01 Lakehouse | AE-02, AE-03, AE-04, AE-07 |
+| 25-35 | C03 Integraciones | AE-01, AE-02 |
+| 35-50 | C02 Pipelines | PRE-03, AE-01, AE-05, AE-06 |
+| 50-65 | C04 Power BI | PRE-01, AE-01, AE-03 |
+| 65-80 | C01-AE-05 CDC | SIEMPRE despues de C02 (ver nota) |
+| 80-90 | Preguntas | |
+
+## C01 Lakehouse [OK 25-oct] ~15 min
 | # | Accion | Se ve | Prueba |
 |---|---|---|---|
-| 1 | Jobs: mostrar grafo `sib-pipeline -> sib-calidad` y una corrida en Success (2m47s, 25.75M filas) | Inicio, fin, estado, log de 4 pasos | C02-PRE-03, AE-01 |
-| 2 | Log de `sib-calidad` | 5 reglas en [OK], 0 duplicados | AE-06 (integridad) |
-| 3 | Crear marcador y Run de `sib-pipeline` | Tras ~1.5 min: `Paso 3 intento 1: FALLIDO ... FALLO CONTROLADO ... Accion: eliminar el marcador` | AE-05 |
-| 4 | **Apenas aparezca el FALLIDO**, borrar el marcador | `Paso 3 intento 2: EXITOSO`, Job en Success, calidad corre sola | AE-06 (recuperacion) |
-| 5 | Hue: `SELECT paso, intento, estado, mensaje FROM sb_consumption.pipeline_pasos ORDER BY inicio DESC LIMIT 6;` | Paso 3 dos veces: FALLIDO y EXITOSO | AE-05, AE-06 |
+| 1 | Misma consulta en Hue (user006) y en Python impyla en CAI | mismo resultado, dos motores | AE-02 |
+| 2 | Hue (user002): `c01_ae03_operaciones_transaccionales.sql` (CTAS, INSERT, UPDATE, DELETE, MERGE) + `DESCRIBE HISTORY` | snapshot por operacion | AE-03 |
+| 3 | Hue (user002): `c01_ae04_evolucion_esquema.sql` (ADD COLUMNS, rename) | sin reescritura de datos | AE-04 |
+| 4 | Hue (user001): DESCRIBE FORMATTED / HISTORY / SHOW FILES / COLUMN STATS | metadatos tecnicos | AE-07 |
+Leccion: `config.yaml impala.host_depto_a` debe ser el host de impala-sib-a (404 con el viejo).
+C01-AE-06 (motor externo sin exportar) se muestra en la sesion 2 con C08-AE-07.
 
-Lecciones del ensayo (23-oct):
-- Con `--espera 60` no hubo tiempo de borrar el marcador: los 3 intentos fallaron. Usar 180.
-- Los pasos 1 y 2 tardan ~1.5 min antes de llegar al paso 3: mantener el comando `rm` ya escrito en la Terminal.
-- La carpeta `sb/control` debe existir (`hdfs dfs -mkdir -p s3a://$B/sb/control`); `put` no la crea.
-- Pendiente para el dry-run: completar el paso 4 (recuperacion) de punta a punta.
+## C03 Integraciones [PEND] ~10 min
+| # | Accion | Se ve | Prueba |
+|---|---|---|---|
+| 1 | Hue: `SELECT * FROM sb_curated.mercado_series LIMIT 10` (ingesta Alpha Vantage) | 4 series con filas | AE-02 |
+| 2 | APIs de la plataforma (curl de `fase3/c03/c03_apis_y_diagramas.md`) | listar y ejecutar por API | AE-01, PRE-02 |
+| 3 | Diagramas Entra, SharePoint, D365, IDMC, CipherTrust | documental | AE-03..07 [DECL] |
 
-Plan B: capturas en `evidencias/C02/` (grafo de jobs, log de 4 pasos, log de calidad, log del fallo).
-Cierre: confirmar marcador borrado.
+## C02 Pipelines [OK 22/23-oct; recuperacion PEND dry-run] ~15 min
+Bloc de notas:
+- crear marcador: `echo x > /tmp/m && hdfs dfs -put -f /tmp/m s3a://$B/sb/control/fallar_paso_3`
+- borrar marcador: `hdfs dfs -rm s3a://$B/sb/control/fallar_paso_3`
 
-## C07 Seguridad (validado 22-oct) - ~6 min
-Ventanas de incognito: user005, user006, user001. En cada una (Hue, Impala):
-`SELECT identificacion, nombre, region FROM sb_curated.clientes LIMIT 3;` y `SELECT id_credito, saldo_pendiente FROM sb_curated.creditos LIMIT 3;`
+| # | Accion | Se ve | Prueba |
+|---|---|---|---|
+| 1 | Jobs: grafo `sib-pipeline -> sib-calidad` y una corrida en Success (2m47s, 25.75M filas) | inicio, fin, estado, log de 4 pasos | PRE-03, AE-01 |
+| 2 | Log de `sib-calidad` | 5 reglas [OK], 0 duplicados | AE-06 (integridad) |
+| 3 | Crear marcador y Run de `sib-pipeline` | a ~1.5 min: `Paso 3 intento 1: FALLIDO ... FALLO CONTROLADO` | AE-05 |
+| 4 | Apenas aparezca el FALLIDO, borrar el marcador | `Paso 3 intento 2: EXITOSO`, calidad corre sola | AE-06 (recuperacion) |
+| 5 | Hue: `SELECT paso, intento, estado, mensaje FROM sb_consumption.pipeline_pasos ORDER BY inicio DESC LIMIT 6;` | paso 3 FALLIDO y EXITOSO | AE-05, AE-06 |
+Lecciones: con `--espera 60` no hubo tiempo de borrar el marcador (usar 180); la carpeta `sb/control` debe existir
+(`hdfs dfs -mkdir -p s3a://$B/sb/control`). Cierre: confirmar el marcador borrado.
+
+## C04 Power BI [OK 24/25-oct] ~15 min
+| # | Accion | Se ve | Prueba |
+|---|---|---|---|
+| 1 | Conexion: conector Impala, DirectQuery, user006 | solo NORTE (61.319 creditos), identificacion en hash | PRE-01, AE-03 |
+| 2 | Hue (user001): UPDATE +1000 | la tarjeta sube 1000 sin tocar Power BI | AE-01 |
+| 3 | Hue: UPDATE -1000 | vuelve al valor original | AE-01 |
+| 4 | Cambiar credencial a user005 + Refresh | solo CENTRAL | AE-03 |
+Lecciones: el conector Impala de fabrica no habla HTTP; se redirige al driver Cloudera 2.7+ (guia c04, paso 0; rehacer si
+Power BI se actualiza). Hive LLAP ya no existe en Power BI. Todas las consultas del .pbix deben apuntar a impala-sib-a
+(Editor avanzado, linea Source). Tras cambiar de usuario: Refresh. Vistas con INNER JOIN a clientes (el LEFT JOIN filtro
+348.433 creditos sin region). AE-02 Import, AE-05 y AE-06 validados el 25-oct.
+
+## C01-AE-05 CDC SQL Server -> Kafka -> MERGE Iceberg [OK 27-oct] ~15 min
+NOTA DE ORDEN: cualquier corrida de sib-pipeline (C02, C05, C08-AE-06) recarga sb_curated.clientes desde sb_raw
+(TRUNCATE + INSERT) y borra lo aplicado por CDC. Por eso el CDC cierra la sesion 1. Declarar: en produccion el paso 1
+del pipeline seria un MERGE incremental.
+| # | Accion | Se ve | Prueba |
+|---|---|---|---|
+| 1 | Terminal CAI: `python fase3/c01/cdc/c01_ae05_cdc_consumidor.py` ANTES de tocar SQL Server | "Consumidor CDC activo" | |
+| 2 | SSMS: `c01_ae05_generar_cambios.sql` | 3 UPDATE, 1 INSERT, 1 DELETE en origen | AE-05 |
+| 3 | Terminal: esperar la linea MERGE (15-30 s) | `MERGE {'u': 3, 'c': 1, 'd': 1}` | AE-05 |
+| 4 | Hue: `SELECT id_cliente, segmento, cdc_ts FROM sb_curated.clientes WHERE id_cliente IN (10,20,30,40,9000001);` + `DESCRIBE HISTORY` | cdc_ts de hoy, 40 ausente, snapshot nuevo | AE-05 |
+Resultado del 27-oct: 5 eventos -> MERGE en 5.6 s.
+Lecciones: driver JDBC copiado a mano; JAAS PLAIN por conector (producer.override.*) y en schema.history.internal.*;
+PLAIN en MAYUSCULAS; politicas Ranger en el servicio Kafka del Data Hub (sb_12, sb_13); topicos creados a mano;
+snapshot.isolation.mode=snapshot; tras corregir, reiniciar la TAREA. Requisitos del consumidor: `pip install kafka-python`,
+CA de FreeIPA en `config/datahub-ca.pem`. Detener con Ctrl+C al terminar.
+
+---
+
+# SESION 2: Seguridad, gobierno y DevOps (90 min)
+
+Preparacion especifica:
+- [ ] GitHub: API key nueva (vence en 1 dia) en el secret CONFIG_YAML; runner en Idle; tag v1.0.0 con el pipeline
+      (en CAI: `git fetch origin --tags --force && git cat-file -e v1.0.0:fase3/c02/c02_pipeline_sql.py && echo OK`)
+- [ ] Rama `feature/demo-sesion2` con un cambio menor lista para abrir el PR
+- [ ] Repetibilidad C08-AE-03: `DROP VIEW IF EXISTS sb_sandbox_depto_a.v_tx_por_entidad; DROP TABLE IF EXISTS sb_sandbox_depto_a.entidades_copia;`
+- [ ] Power BI: pagina con la tabla `nombre_entidad` filtrada por `id_entidad_destino = 7`
+- [ ] AWS CloudShell abierto con las variables B/K/V de la guia `c08_auditoria_e_inmutabilidad.md`
+- [ ] Laptop: perfil `sib-externo` con la access key ACTIVA (reactivar si se desactivo en el ensayo)
+- [ ] Portal sib-accesos sin solicitudes pendientes de ensayos
+
+| Min | Bloque | Contenido |
+|---|---|---|
+| 0-5 | Apertura | SDX: Ranger (permisos, masking, filtros, auditoria), Atlas (tags, linaje), roles independientes del IdP |
+| 5-20 | C07 Seguridad | AE-01, AE-02, AE-05. Al inicio, abrir el PR de C05 para que CI y DEV corran en paralelo |
+| 20-60 | C08 Gobierno | PRE-01/02, AE-01..08 |
+| 60-80 | C05 CI/CD | AE-01..05 |
+| 80-90 | Preguntas | |
+
+## C07 Seguridad [OK 22-oct; capturas PEND] ~15 min
+En cada ventana (Hue, Impala): `SELECT identificacion, nombre, region FROM sb_curated.clientes LIMIT 3;` y
+`SELECT id_credito, saldo_pendiente FROM sb_curated.creditos LIMIT 3;`
 | Usuario | Esperado | Prueba |
 |---|---|---|
 | user005 | hash, solo CENTRAL; creditos: error de autorizacion | AE-02, AE-05 |
 | user006 | hash, solo NORTE; creditos: OK | AE-01, AE-05 |
 | user001 | todo en claro | AE-05 |
-Luego Ranger > Audit > Access filtrando user005: Allowed y Denied (C07-AE-01, C08-AE-04).
-Narrativa: permisos con roles de Ranger (independientes del IdP), atributos como roles, PII/CONFIDENCIAL por tags de Atlas.
-Pendiente: capturas de evidencia (se cerro la sesion sin guardarlas).
+Luego Ranger > Audit > Access filtrando user005: Allowed y Denied (C07-AE-01 y C08-AE-04).
+Narrativa: permisos con roles de Ranger, atributos como roles, PII/CONFIDENCIAL por tags de Atlas.
 
-## C04 Power BI (AE-01 validado 24-oct) - ~6 min
-Preparacion: EC2 Windows encendida, Power BI con el driver Cloudera redirigido (guia c04, paso 0), conectado al host
-de `impala-sib-a` (VW oficial; el AE-01 del 24-oct se valido contra sibrd-impala: reconectar), archivo .pbix
-abierto con la pagina "AE-01" (tarjeta Suma dias_mora + tabla filtrada dias_mora > 900), conectado como user006.
-Actualizacion de pagina cada 5 s. En Hue (user001) dejar escritos el UPDATE +1000 y el -1000 con el id_credito.
+## C08 Gobierno [OK 27/28-oct; AE-07 PEND dry-run] ~40 min
 | # | Accion | Se ve | Prueba |
 |---|---|---|---|
-| 1 | Mostrar conexion: conector Impala, DirectQuery, usuario user006 | Solo region NORTE (61.319 creditos), identificacion en hash | C04-PRE-01, AE-03 |
-| 2 | Hue: UPDATE +1000 | Tarjeta sube 1000 y aparece la fila, sin tocar Power BI | AE-01 |
-| 3 | Hue: UPDATE -1000 | Vuelve al valor original | AE-01 |
-Lecciones (25-oct): con el host de sibrd-impala (VW viejo) Power BI dio 503 y luego ParseException en `select top`;
-mismo archivo y driver con el host de impala-sib-a funciona. Todas las consultas del .pbix deben apuntar a impala-sib-a
-(revisar en Editor avanzado, linea Source).
-Lecciones (24-oct): el conector Impala de fabrica no habla HTTP (error "Unexpected response"); Hive LLAP ya no existe
-en Power BI. Si Power BI se actualiza, rehacer el paso 0 de la guia. C04 completo 25-oct: AE-02 Import, AE-03 user005/user006 (Refresh tras cambiar usuario), AE-05, AE-06. AE-01 con actualizacion automatica de pagina (Format page > Page refresh).
+| 1 | Atlas: `sb_curated.clientes` > Properties y Lineage; `Tablero Cartera Crediticia` > Lineage; `Asistente normativo RAG` > Lineage | Gobierno_SB (dominio, propietario, custodio user002, criticidad); linaje SQL Server -> curada -> vistas -> tablero; documentos -> agente | PRE-01/02, AE-01/02 |
+| 2 | Hue (user002): CREATE entidades_copia + vista; Atlas muestra la vista aguas abajo; rename de columna; SELECT de la vista | `Could not resolve column/field reference: 'e.nombre'` | AE-03 |
+| 3 | Hue (user002): DESCRIBE HISTORY (anotar snapshot) + UPDATE entidad 7 a 'ENTIDAD CORRUPTA - DEMO' + Job sib-pipeline (~4 min: explicar mientras corre) | el valor corrupto en Hue y en Power BI | AE-06 |
+| 4 | Ranger > Audit > Access: user002, entidades_financieras | el UPDATE con usuario, fecha y recurso | AE-04, AE-06 |
+| 5 | `ALTER TABLE sb_curated.entidades_financieras EXECUTE ROLLBACK(<snapshot>)` + sib-pipeline + SELECT | nombre original de vuelta | AE-06 |
+| 6 | CloudShell: delete-object de una version del bucket WORM, sin y con `--bypass-governance-retention` | AccessDenied en ambos | AE-05, PRE-05 |
+| 7 | Laptop (perfil sib-externo): `python fase3/c08/c08_ae07_lectura_externo.py --metadata <metadata_location>`; IAM > Deactivate de la key; repetir | lee la tabla enmascarada; luego AccessDenied | AE-07, C01-AE-06 |
+| 8 | Portal sib-accesos: user005 solicita sb_raw.entidades_financieras; Aprobar 7 dias; Hue user005 lee; Revocar; denegado | bandeja, historial, aprobador real (Remote-User); Ranger > Audit > Admin | AE-08 |
+Declaraciones:
+- AE-01: Atlas es el mecanismo compatible; la sincronizacion hacia IDMC la hace el escaner de Informatica.
+- AE-02: los tramos de origen (SQL Server) y de consumo (Power BI, RAG) se registran por API; el intermedio es automatico.
+- AE-05: inmutabilidad por S3 Object Lock (AWS), no por Ranger. En la PoC GOVERNANCE + bucket policy; en produccion
+  COMPLIANCE (ni root borra). Matiz: un "Delete" sin version solo agrega un delete marker.
+- AE-07: el tenant no tiene el entitlement CDP_DATA_SHARE_ADMIN (Data Catalog sin menu Data Sharing). Plan B: credencial
+  IAM de solo lectura sobre la tabla enmascarada, con vencimiento automatico y revocable. Nativo: Data Catalog > Data Sharing.
+- AE-08: workaround (el catalogo no trae flujo de solicitud); en produccion ServiceNow, Power Automate o IDMC Marketplace.
+Lecciones: el contenedor de CAI corre en UTC (la vigencia de Ranger se envia en hora de Costa Rica); los audits de Ranger
+estan en `<storage location base>/ranger/audit/` (ruta data, no logs); el paso 3 y el 5 corren el pipeline dos veces (~8 min).
 
-## C01-AE-05 CDC SQL Server (COMPLETO 27-oct: SQL Server -> Debezium -> Kafka -> MERGE Iceberg)
-Preparacion: SQL Server Agent corriendo en la EC2; conector `sb-cdc-sqlserver-core` y su Task 0 en Running (SMM > Connect).
-Antes de la demo: confirmar que el driver sigue en `/var/lib/kafka_connect_jdbc/` de cada host de Connect (se pierde si un nodo se repara).
-Lecciones (25-oct): faltaba el driver JDBC (NoClassDefFoundError); JAAS PLAIN obligatorio por conector (producer.override.*);
-el historial de esquema no hereda la seguridad (schema.history.internal.producer/consumer.*); Kerberos via cm-agent keytab
-no funciono, se usa PLAIN (en MAYUSCULAS); politicas Ranger en el servicio Kafka del Data Hub; tras corregir, reiniciar la TAREA;
-topicos creados a mano (sin autocreacion); snapshot.isolation.mode=snapshot para no bloquear UPDATEs en SQL Server.
-Snapshot validado 17:05: 1M clientes en Kafka. UPDATE en vivo capturado con op=u (17:13).
-VALIDADO 27-oct: consumidor `python fase3/c01/cdc/c01_ae05_cdc_consumidor.py` (Terminal CAI, `pip install kafka-python`,
-CA de FreeIPA en config/datahub-ca.pem). c01_ae05_generar_cambios.sql en SSMS -> log
-"sb_curated.clientes: 5 eventos -> MERGE {'u': 3, 'c': 1, 'd': 1} en 5.6 s"; en Hue 10/20/30 PYME y 9000001 con cdc_ts nuevo, 40 eliminado.
-| # | Accion | Se ve |
+## C05 CI/CD [OK 26/27-oct] ~20 min
+| # | Accion | Se ve | Prueba |
+|---|---|---|---|
+| 1 | PR abierto al inicio de la sesion: checks CI (esquema + calidad) y DEV via cola | checks verdes en el PR | AE-01, AE-02 |
+| 2 | Pagina de `sib-despachador` | cola con estados, ambiente y version | AE-02 |
+| 3 | Merge del PR: TEST automatico y PROD en "Waiting for review" | gate de aprobacion | AE-03, AE-04 |
+| 4 | Review deployments > Approve and deploy | PROD verde | AE-03 |
+| 5 | Actions > sb-cicd > Run workflow, rollback_ref = v1.0.0 (TEST, luego aprobar PROD) | version inmutable redesplegada | AE-05 |
+| 6 | Hue: `SELECT * FROM sb_gov.despliegues ORDER BY 6 DESC LIMIT 8;` | historial completo | AE-05 |
+Narrativa: el CI/CD externo no tiene credenciales de Cloudera AI; deja una solicitud auditable que la plataforma ejecuta
+(la EC2 no llega al balanceador de CAI). Cada version se materializa por commit en `despliegues/<ambiente>/<commit>`.
+Lecciones: el workflow hace checkout SIEMPRE de main y pasa el tag como --version (kit v19); `[skip ci]` en commits de kit;
+Python del runner en `C:\actions-runner\.path` (una sola linea) y en el PATH de maquina; sb-prod con Required reviewers.
+Tiempos: PR completo ~5 min; rollback TEST ~4 min + PROD ~5 min. Si el tiempo aprieta: rollback solo hasta TEST y mostrar
+el run #16 del 27-oct como evidencia de PROD.
+
+---
+
+# SESION 3: IA y operacion (90 min)
+
+Preparacion especifica:
+- [ ] Modelo `sib-riesgo-credito` en Deployed; API key de usuario (formato "x.y") a mano
+- [ ] Experimento MLflow `sb-riesgo-credito` con los runs Python y R; version registrada en AI Registry
+- [ ] Endpoint del LLM (RAG) y servidor MCP (user008) arriba [PEND]
+- [ ] Vista de consumo y costos de la Management Console filtrada por la PoC
+
+| Min | Bloque | Contenido |
 |---|---|---|
-| 1 | Terminal CAI: arrancar el consumidor ANTES de tocar SQL Server | "Consumidor CDC activo" |
-| 2 | SSMS: ejecutar c01_ae05_generar_cambios.sql | 3 UPDATE, 1 INSERT, 1 DELETE en origen |
-| 3 | Terminal: esperar la linea MERGE (15-30 s) | MERGE {'u': 3, 'c': 1, 'd': 1} |
-| 4 | Hue: SELECT de ids 10,20,30,40,9000001 + DESCRIBE HISTORY | cdc_ts de hoy, 40 ausente, snapshot nuevo |
-Lecciones (27-oct): si la EC2 estuvo apagada, la tarea de Debezium queda FAILED ("No route to host") y Connect no reintenta:
-Restart de la TAREA; retoma desde su offset y publica lo pendiente (CDC de SQL Server retiene 3 dias). La EC2 en UTC es normal.
-OJO ORDEN: cualquier corrida de sib-pipeline (C02, C05, C08-AE-06) recarga sb_curated.clientes desde sb_raw (TRUNCATE + INSERT)
-y borra lo aplicado por CDC: mostrar CDC DESPUES de esas demos. Declarar: en produccion el paso 1 seria MERGE incremental.
-Para repetir la demo: el INSERT de 9000001 falla si ya existe; antes borrar 9000001 en SSMS (o cambiar el id) y usar otros ids en el UPDATE.
+| 0-5 | Apertura | Ciclo de vida: dato gobernado -> entrenamiento trazable -> registro -> endpoint -> monitoreo |
+| 5-55 | C06 IA/ML | AE-01, 03, 04, 05, 06, RAG, MCP |
+| 55-80 | C09 Administracion y FinOps | AE-01, 02, 04, 05, 07 |
+| 80-90 | Preguntas y cierre de la PoC | |
 
-## C01 Lakehouse (validado 25-oct)
-AE-02 misma consulta Hue (user006) y Python impyla en CAI; AE-03 CTAS/INSERT/UPDATE/DELETE/MERGE + DESCRIBE HISTORY (user002);
-AE-04 ADD COLUMNS/rename sin reescritura (user002); AE-07 DESCRIBE FORMATTED/HISTORY/SHOW FILES/COLUMN STATS (user001).
-Leccion: config.yaml impala.host_depto_a debe ser el host de impala-sib-a (404 con el viejo).
-
-## C05 CI/CD (en construccion 26-oct)
-Chequeo previo (laptop, en el repo): `git ls-remote --tags origin v1.0.0` y `git show v1.0.0:fase3/c02/c02_pipeline_sql.py | head -1`
-(si el segundo falla, el tag apunta a un commit viejo: `git tag -f v1.0.0 HEAD && git push -f origin v1.0.0`).
-Leccion (26-oct): v1.0.0 se creo antes del pipeline; el job fallo con SystemExit 2. ejecutar_version.py ahora hace fetch
-con --force, materializa por commit (no por tag) y valida que la version tenga el pipeline, con mensaje accionable.
-Red (26-oct): la EC2 no llega al balanceador de CAI (TCP 443) aun con regla en su SG. Despliegue via cola:
-`sb_gov.solicitudes_despliegue` + Application `sib-despachador` en CAI. Antes de la demo: sib-despachador en Running.
-Narrativa: el CI/CD externo no tiene credenciales de Cloudera AI; deja una solicitud auditable que la plataforma ejecuta.
-PR validado 26-oct 15:25: CI (esquema + calidad) 42 s en verde; DEV via cola: sib-despachador EXITOSO, check verde (4m56s total).
-Secuencia demo C05: PR (CI + DEV) -> merge (TEST automatico) -> PROD "Waiting for review" -> aprobar -> PROD -> rollback
-(Actions > sb-cicd > Run workflow, rollback_ref = v1.0.0). Pantallas: PR checks, pagina sib-despachador, Jobs de CAI,
-`SELECT * FROM sb_gov.despliegues ORDER BY fecha DESC`.
-Runner: Python en C:\Program Files\Python\Python311 debe estar en C:\actions-runner\.path (UNA sola linea) y en el PATH de maquina.
-Estado C05 (26-oct): PR -> CI -> DEV -> merge -> TEST -> PROD funcionando (prod dfd61f5 EXITOSO). sb-prod quedo SIN required
-reviewers durante esa corrida (corregido despues: Required reviewers = adrianmc, sin Prevent self-review).
-C05 COMPLETO 27-oct (run #16, workflow_dispatch rollback_ref=v1.0.0): CI verde, DEV omitido, TEST verde (4m 11s),
-PROD retenido en "Waiting for review" (AE-03), aprobado por adrianmc y desplegado (AE-05). Evidencias capturadas.
-Fix 27-oct (kit v19): el workflow hace checkout SIEMPRE de main y pasa el tag como --version (antes hacia checkout del
-tag viejo y usaba un desplegar_cai.py sin --via cola). Un solo Run workflow con v1.0.0 cubre AE-05 en TEST y AE-03 + AE-05 en PROD.
-
-## C06 IA/ML (26-oct)
-- AE-01 JOIN sobre PII enmascarada (user003 vs user001, mismos totales): validado.
-- AE-04 Python + MLflow: 500.000 filas desde snapshot Iceberg 4266263547230025387, AUC 0.8075; run con params, metricas,
-  tags (snapshot, commit, autor) y artefacto. AI Registry desplegado (requirio Manage Access MLUser + Synchronize Users);
-  el modelo se registra con metadata pero la version falla: "Failed to create model registry directory in storage"
-  (permiso de almacenamiento del registro). PENDIENTE 27-oct.
-- AE-03 R (glm): AUC 0.803, run glm-R en el mismo experimento.
-- AE-05 endpoint Models: Deployed tras 2 ajustes: build script fase3/c06/cdsw-build.sh (el build no hereda paquetes de
-  las sesiones: joblib/scikit-learn con la version EXACTA del entrenamiento) y artefacto en fase3/c06/modelo_riesgo.pkl
-  (el build excluye lo que esta en .gitignore: data/, *.joblib). Antes de desplegar: cp data/modelo_riesgo.joblib fase3/c06/modelo_riesgo.pkl
-- AE-05 VALIDADO 27-oct: Test en UI OK (prob 0.1994, APROBAR) con autenticacion activa. API key formato "x.y" (valor
-  largo completo). Carga 500 req / 10 hilos: 0 errores, p50 113 ms, p95 3121 ms, 9.4 req/s con 1 replica de 1 vCPU.
-  Narrativa: la cola p95 es por 1 sola replica; con 2-3 replicas baja (escalado horizontal desde Settings del modelo).
-  Fix aplicado: track_metric esta en cml.metrics_v1 (no en models_v1).
-- AE-04 COMPLETO 27-oct: version registrada en AI Registry tras dar acceso al machine user del registro en Ranger
-  cm_s3 > "all - bucket, path" (ambiente con RAZ). Sin RAZ seria IDBroker mapping del Machine User CRN.
-
-## C08 Gobernanza (en curso 27-oct)
-VALIDADO 27-oct: pasos 1-3. Registro Atlas todo 200/204 (tipos, Gobierno_SB en 3 tablas, 3 tramos SQL Server, tablero,
-5 documentos, agente); linaje completo visto en Atlas. AE-03: rename en entidades_copia -> v_tx_por_entidad falla con
-"Could not resolve column/field reference: 'e.nombre'". AE-06: UPDATE entidad 7 -> sib-pipeline -> 'ENTIDAD CORRUPTA - DEMO'
-en Hue y Power BI (DirectQuery sobre sb_curated.transacciones) -> Ranger audit del UPDATE -> EXECUTE ROLLBACK(snapshot)
--> sib-pipeline -> nombre original de vuelta.
-AE-08 VALIDADO 28-oct con el portal sib-accesos: aprobador real tomado de la sesion de CAI (Remote-User = amiranda),
-politica sb_solicitud_<id> con vigencia de 7 dias, user005 lee sb_raw.entidades_financieras, revocar retira el acceso.
-Leccion: el contenedor de CAI corre en UTC; la vigencia se envia en hora de Costa Rica (UTC-6). Antes la politica nacia
-6 h en el futuro y el SELECT seguia denegado. Prerrequisito: IP de salida de CAI en el security group de Knox (443).
-Para repetir AE-03: DROP VIEW sb_sandbox_depto_a.v_tx_por_entidad; DROP TABLE sb_sandbox_depto_a.entidades_copia;
+## C06 IA/ML [AE-01/03/04/05 OK 26/27-oct; drift, RAG y MCP PEND]
 | # | Accion | Se ve | Prueba |
 |---|---|---|---|
-| 1 | CAI Terminal: `python fase3/c08/c08_registro_activos_y_linaje_bi.py` | 200/409; Atlas: Business Metadata Gobierno_SB en clientes/creditos; linaje SQL Server -> curada -> vista -> dashboard | PRE-01/02, AE-01/02 |
-| 2 | Hue (user002): parte AE-03 de c08_impacto_y_corrupcion.sql | vista dependiente falla tras el rename; Atlas la muestra downstream | AE-03 |
-| 3 | Hue (user002): corrupcion de entidad 7 + Job sib-pipeline + SELECT | 'ENTIDAD CORRUPTA - DEMO' en transacciones y Power BI; Ranger audit del UPDATE; rollback | AE-06 |
-| 4 | Ranger > Audit > Access (user005) | Allowed y Denied | AE-04 |
-| 5 | AWS: bucket WORM + delete -> AccessDenied | inmutabilidad | AE-05, PRE-05 |
-| 6 | Data Sharing de sb_share.clientes_externo + revocar | lee, luego denegado | AE-07 |
-| 7 | Application sib-accesos (fase3/c08/c08_portal_accesos.py): solicitar -> Aprobar (7 dias) -> Hue user005 lee sb_raw.entidades_financieras -> Revocar -> denegado. Plan B: c08_solicitud_acceso.py en Terminal | bandeja de pendientes, historial, Ranger > Audit > Admin | AE-08 (workaround) |
+| 1 | JOIN sobre PII enmascarada (user003 vs user001) | mismos totales, PII protegida | AE-01 |
+| 2 | MLflow: run Python (500.000 filas, snapshot Iceberg 4266263547230025387, AUC 0.8075) y run R glm (AUC 0.803) | params, metricas, tags (snapshot, commit, autor), artefacto | AE-03, AE-04 |
+| 3 | AI Registry: version del modelo registrada | linaje modelo -> datos | AE-04 |
+| 4 | Endpoint: Test en UI (prob 0.1994, APROBAR) y prueba de carga | 500 req, 0 errores, p50 113 ms, p95 3121 ms, 9.4 req/s con 1 replica | AE-05 |
+| 5 | Drift: comparacion contra `data/referencia_drift.csv` | alerta de drift visible en el job | AE-06 [PEND] |
+| 6 | Asistente RAG sobre documentos normativos | respuesta con fuentes | [PEND] |
+| 7 | MCP con user008: el agente consulta solo lo permitido por Ranger | consulta permitida y denegada | [PEND] |
+Narrativa del p95: una sola replica de 1 vCPU; con 2-3 replicas baja (escalado horizontal desde Settings del modelo).
+Lecciones: el build del endpoint no hereda paquetes de las sesiones (cdsw-build.sh con versiones EXACTAS); el artefacto
+va en `fase3/c06/modelo_riesgo.pkl` (el build excluye lo de .gitignore); `track_metric` esta en `cml.metrics_v1`;
+AI Registry requirio MLUser + Synchronize Users y, con RAZ, el machine user del registro en Ranger cm_s3 "all - bucket, path".
+Si RAG o MCP no quedan listos: se declaran parciales con la arquitectura.
+
+## C09 Administracion y FinOps [PEND]
+| # | Accion | Se ve | Prueba |
+|---|---|---|---|
+| 1 | Costos por proyecto y ambiente (tags + vista de consumo) | granularidad real del ambiente | AE-01 |
+| 2 | Costo base vs pico (`metricas_rendimiento` + calculadora) | numeros de la calculadora | AE-02 |
+| 3 | Cuello de botella: DROP STATS, consulta lenta, Query Profile, COMPUTE STATS, consulta rapida | diagnostico con evidencia | AE-04 |
+| 4 | HA y perdida de nodo; DR | explicacion con diagrama | AE-05, AE-07 [DECL] |
+Precision AE-05: Impala reintenta la consulta, no la continua. AE-03 (modelo comercial), AE-06 y PRE-03/04 (SLA, RTO/RPO,
+costos) los presenta el AE con valores oficiales.
+
+---
+
+## Despues de cada sesion
+- Detener el consumidor CDC (Ctrl+C) y cerrar las sesiones de CAI
+- Suspender el VW, apagar el ambiente y la EC2
+- Al cierre de la PoC: rotar las contrasenas de user001, user002 y sbcore_dbz; quitar la bucket policy del bucket WORM;
+  borrar el usuario IAM sib-externo; revisar que `config.yaml` nunca se haya subido al repo

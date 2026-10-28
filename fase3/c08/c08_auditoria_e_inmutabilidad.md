@@ -9,7 +9,7 @@ Complementos: **Audit > Admin** (cambios a politicas, p. ej. la politica creada 
 
 ## PRE-05: politica de retencion (declarar en la demo)
 - Consulta en linea: los audits de Ranger se indexan en Solr del Data Lake; la retencion es configurable (TTL en dias).
-- Largo plazo: Ranger escribe los audits en el storage del ambiente (prefijo `ranger/audit/` del bucket de logs);
+- Largo plazo: Ranger escribe los audits en el storage del ambiente (`<storage location base>/ranger/audit/`, ruta de datos);
   la retencion la gobierna S3 (Lifecycle) y la inmutabilidad el bucket WORM descrito abajo.
 - Propuesta para la SIB: 90 dias en linea, 5 anos en almacenamiento WORM. Validar el valor por defecto del TTL de Solr en el ambiente.
 
@@ -20,15 +20,16 @@ bucket WORM dedicado. Region del ambiente: us-east-2. Herramienta: consola de AW
 
 Preparacion (validada el 28-oct):
 1. Ruta de auditoria: Management Console > Environments > sibrd-cdp-env > Summary > Logs Storage and Audits >
-   Logs location base. Los audits de Ranger quedan en `<logs location base>/ranger/audit/<servicio>/<fecha>/`.
+   **Storage Location Base** (la ruta de datos, termina en /data; NO el Logs location base). Los audits de Ranger quedan en
+   `<storage location base>/ranger/audit/<servicio>/<fecha>/` (los escribe el Ranger Audit Role). Validado 28-oct.
 2. Bucket WORM: S3 > Create bucket `CAMBIAR_BUCKET_WORM` (us-east-2) > Advanced settings > **Object Lock: Enable**
    (activa versionado). Properties > Object Lock > Default retention: **Governance, 1 dia** (produccion: Compliance, 5 anos).
 3. Permissions > Bucket policy: `fase3/c08/c08_politica_bucket_worm.json` (cuenta y bucket reemplazados). Niega bypass de
    governance, borrado de versiones, cambio de retencion y de configuracion de Object Lock a todo principal salvo el rol
    break-glass `sb-breakglass` (no se crea en la PoC: nadie puede, que es lo que se demuestra).
-4. Carga de los audits (CloudShell): `aws s3 sync s3://<bucket-logs>/<prefijo>/ranger/audit/ s3://CAMBIAR_BUCKET_WORM/ranger/audit/`
-5. Continuo (declarar; opcional en la PoC): S3 Replication del prefijo `ranger/audit/` hacia el bucket WORM. Requiere
-   versionado en el bucket de CDP + lifecycle que expire versiones no actuales a los 7 dias.
+4. Carga de los audits (CloudShell): `aws s3 sync s3://<bucket>/<prefijo-data>/ranger/audit/ s3://CAMBIAR_BUCKET_WORM/ranger/audit/`
+5. Continuo (declarar; opcional en la PoC): S3 Replication del prefijo `<prefijo-data>/ranger/audit/` hacia el bucket WORM.
+   Requiere versionado en el bucket de CDP + lifecycle que expire versiones no actuales a los 7 dias.
 
 Demostracion (CloudShell):
 ```
