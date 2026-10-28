@@ -134,6 +134,12 @@ tag viejo y usaba un desplegar_cai.py sin --via cola). Un solo Run workflow con 
   cm_s3 > "all - bucket, path" (ambiente con RAZ). Sin RAZ seria IDBroker mapping del Machine User CRN.
 
 ## C08 Gobernanza (en curso 27-oct)
+VALIDADO 27-oct: pasos 1-3. Registro Atlas todo 200/204 (tipos, Gobierno_SB en 3 tablas, 3 tramos SQL Server, tablero,
+5 documentos, agente); linaje completo visto en Atlas. AE-03: rename en entidades_copia -> v_tx_por_entidad falla con
+"Could not resolve column/field reference: 'e.nombre'". AE-06: UPDATE entidad 7 -> sib-pipeline -> 'ENTIDAD CORRUPTA - DEMO'
+en Hue y Power BI (DirectQuery sobre sb_curated.transacciones) -> Ranger audit del UPDATE -> EXECUTE ROLLBACK(snapshot)
+-> sib-pipeline -> nombre original de vuelta.
+Para repetir AE-03: DROP VIEW sb_sandbox_depto_a.v_tx_por_entidad; DROP TABLE sb_sandbox_depto_a.entidades_copia;
 | # | Accion | Se ve | Prueba |
 |---|---|---|---|
 | 1 | CAI Terminal: `python fase3/c08/c08_registro_activos_y_linaje_bi.py` | 200/409; Atlas: Business Metadata Gobierno_SB en clientes/creditos; linaje SQL Server -> curada -> vista -> dashboard | PRE-01/02, AE-01/02 |

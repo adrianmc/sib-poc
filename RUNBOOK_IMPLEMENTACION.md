@@ -411,7 +411,7 @@ Datos: `fase3/c05/c05_versionado_datos.sql` en HUE. Cubre: **C05-PRE-01..06, C05
 | 3 | AWS + `c08_auditoria_e_inmutabilidad.md` | delete en bucket WORM -> AccessDenied | AE-05, PRE-05 |
 | 4 | Ranger > Audit > Access filtrando sb_analista01 | Allowed y Denied con fecha y recurso | AE-04 |
 | 5 | Data Sharing (E5.6) + revocar el share y repetir la lectura | antes lee, despues denegado | AE-07 |
-| 6 | AI: `python fase3/c08/c08_solicitud_acceso.py solicitar --usuario sb_analista01 --tabla sb_consumption.m_transaccionalidad_mensual --motivo "Informe"`, luego `listar` y `aprobar --id <id>` | sb_analista01 consulta la tabla tras ~30 s | AE-08 (workaround) |
+| 6 | AI: `python fase3/c08/c08_solicitud_acceso.py solicitar --usuario user005 --tabla sb_raw.entidades_financieras --motivo "Conciliacion"`, luego `listar`, `aprobar --id <id> --dias 7` y `revocar --id <id>` | user005 denegado antes, lee tras ~30 s, denegado tras revocar | AE-08 (workaround) |
 
 ---
 
