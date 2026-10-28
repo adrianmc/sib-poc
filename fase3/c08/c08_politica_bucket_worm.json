@@ -1,0 +1,25 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "SinBypassNiBorradoDeVersiones",
+      "Effect": "Deny",
+      "Principal": "*",
+      "Action": [
+        "s3:BypassGovernanceRetention",
+        "s3:DeleteObjectVersion",
+        "s3:PutObjectRetention",
+        "s3:PutBucketObjectLockConfiguration"
+      ],
+      "Resource": [
+        "arn:aws:s3:::CAMBIAR_BUCKET_WORM",
+        "arn:aws:s3:::CAMBIAR_BUCKET_WORM/*"
+      ],
+      "Condition": {
+        "StringNotLike": {
+          "aws:PrincipalArn": "arn:aws:iam::CAMBIAR_CUENTA:role/sb-breakglass"
+        }
+      }
+    }
+  ]
+}

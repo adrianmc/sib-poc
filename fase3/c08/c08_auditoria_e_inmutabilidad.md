@@ -14,27 +14,32 @@ Complementos: **Audit > Admin** (cambios a politicas, p. ej. la politica creada 
 - Propuesta para la SIB: 90 dias en linea, 5 anos en almacenamiento WORM. Validar el valor por defecto del TTL de Solr en el ambiente.
 
 ## AE-05: inmutabilidad (incluso ante usuarios privilegiados)
-Mecanismo: control de AWS, no funcion nativa de Ranger. **No se activa Object Lock en el bucket de logs de CDP**
-(ahi tambien se escriben logs de servicios y backups, y s3a hace renames); se replica el prefijo de auditoria a un bucket WORM dedicado.
+Mecanismo: control de AWS (S3 Object Lock), no funcion nativa de Ranger. **No se activa Object Lock en el bucket de CDP**
+(ahi se escriben datos, logs de servicios y backups, y s3a hace renames); el prefijo de auditoria se copia o replica a un
+bucket WORM dedicado. Region del ambiente: us-east-2. Herramienta: consola de AWS + CloudShell.
 
-Preparacion (Fase 0, cuenta AWS):
-1. Bucket de logs de CDP (existente): habilitar versionado (requisito de la replicacion) y lifecycle que expire versiones no actuales a los 7 dias.
-2. Bucket nuevo `CAMBIAR_BUCKET_WORM` creado con Object Lock y retencion por defecto (PoC: GOVERNANCE 1 dia; produccion: COMPLIANCE):
-```
-aws s3api create-bucket --bucket CAMBIAR_BUCKET_WORM --object-lock-enabled-for-bucket
-aws s3api put-object-lock-configuration --bucket CAMBIAR_BUCKET_WORM --object-lock-configuration "{\"ObjectLockEnabled\":\"Enabled\",\"Rule\":{\"DefaultRetention\":{\"Mode\":\"GOVERNANCE\",\"Days\":1}}}"
-```
-   (fuera de us-east-1 agregar `--create-bucket-configuration LocationConstraint=<region>` al create-bucket)
-3. S3 Replication (misma region) en el bucket de logs: regla con filtro de prefijo `ranger/audit/` hacia `CAMBIAR_BUCKET_WORM`
-   (consola S3 > bucket de logs > Management > Replication rules; rol IAM que la consola crea).
-4. Bucket policy del bucket WORM que niegue `s3:PutBucketObjectLockConfiguration`, `s3:BypassGovernanceRetention`
-   y `s3:DeleteObjectVersion` a todo principal salvo un rol break-glass.
+Preparacion (validada el 28-oct):
+1. Ruta de auditoria: Management Console > Environments > sibrd-cdp-env > Summary > Logs Storage and Audits >
+   Logs location base. Los audits de Ranger quedan en `<logs location base>/ranger/audit/<servicio>/<fecha>/`.
+2. Bucket WORM: S3 > Create bucket `CAMBIAR_BUCKET_WORM` (us-east-2) > Advanced settings > **Object Lock: Enable**
+   (activa versionado). Properties > Object Lock > Default retention: **Governance, 1 dia** (produccion: Compliance, 5 anos).
+3. Permissions > Bucket policy: `fase3/c08/c08_politica_bucket_worm.json` (cuenta y bucket reemplazados). Niega bypass de
+   governance, borrado de versiones, cambio de retencion y de configuracion de Object Lock a todo principal salvo el rol
+   break-glass `sb-breakglass` (no se crea en la PoC: nadie puede, que es lo que se demuestra).
+4. Carga de los audits (CloudShell): `aws s3 sync s3://<bucket-logs>/<prefijo>/ranger/audit/ s3://CAMBIAR_BUCKET_WORM/ranger/audit/`
+5. Continuo (declarar; opcional en la PoC): S3 Replication del prefijo `ranger/audit/` hacia el bucket WORM. Requiere
+   versionado en el bucket de CDP + lifecycle que expire versiones no actuales a los 7 dias.
 
-Demostracion:
+Demostracion (CloudShell):
 ```
-aws s3api list-object-versions --bucket CAMBIAR_BUCKET_WORM --prefix ranger/audit/ --max-items 1
-aws s3api delete-object --bucket CAMBIAR_BUCKET_WORM --key CAMBIAR_KEY --version-id CAMBIAR_VERSION_ID
+aws s3api list-object-versions --bucket CAMBIAR_BUCKET_WORM --prefix ranger/audit/ --max-items 1 --query "Versions[0].[Key,VersionId]"
+aws s3api delete-object --bucket CAMBIAR_BUCKET_WORM --key <KEY> --version-id <VERSION_ID>
+aws s3api delete-object --bucket CAMBIAR_BUCKET_WORM --key <KEY> --version-id <VERSION_ID> --bypass-governance-retention
 ```
-Resultado esperado: AccessDenied por Object Lock y bucket policy, aun con un usuario administrador. CloudTrail registra el intento.
-Mensaje para la SIB: en COMPLIANCE ni la cuenta root puede borrar antes del vencimiento; GOVERNANCE se usa en la PoC
-para no dejar objetos imborrables en la cuenta de demo.
+Resultado esperado: los dos borrados de version dan **AccessDenied**, aun con un usuario administrador de la cuenta.
+Matiz para explicar: `aws s3 rm` o "Delete" en la consola SIN version solo agrega un delete marker; la version original
+sigue intacta (list-object-versions la muestra). CloudTrail registra cada intento.
+Mensaje para la SIB: en COMPLIANCE ni la cuenta root puede borrar antes del vencimiento; GOVERNANCE + bucket policy se usa
+en la PoC para no dejar objetos imborrables en la cuenta de demo. Honestidad: en GOVERNANCE un administrador podria
+quitar la bucket policy y luego borrar con bypass (queda en CloudTrail); por eso en produccion se usa COMPLIANCE. Limpieza post-PoC: quitar la bucket policy y esperar
+el vencimiento de 1 dia.
