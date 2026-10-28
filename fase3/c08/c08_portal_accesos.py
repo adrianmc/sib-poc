@@ -114,10 +114,10 @@ def pagina(headers, mensaje="", tipo="ok"):
     if error_lista:
         aviso += f"<div class='aviso err'>{e(error_lista)}</div>"
     tabla_pend = ("<table><tr><th>Solicitante</th><th>Recurso</th><th class='ocultable'>Motivo</th>"
-                  "<th class='ocultable'>Solicitada</th><th>Decision</th></tr>" + "".join(map(fila_pend, pendientes)) +
+                  "<th class='ocultable'>Solicitada (UTC)</th><th>Decision</th></tr>" + "".join(map(fila_pend, pendientes)) +
                   "</table>") if pendientes else "<div class='vacio'>No hay solicitudes pendientes.</div>"
     tabla_hist = ("<table><tr><th>Id</th><th>Usuario</th><th>Recurso</th><th>Estado</th><th class='ocultable'>Aprobador</th>"
-                  "<th class='ocultable'>Solicitada</th><th class='ocultable'>Resuelta</th><th></th></tr>" +
+                  "<th class='ocultable'>Solicitada (UTC)</th><th class='ocultable'>Resuelta (UTC)</th><th></th></tr>" +
                   "".join(map(fila_hist, filas)) + "</table>") if filas else "<div class='vacio'>Sin solicitudes.</div>"
     return f"""<!doctype html><html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>Solicitudes de acceso</title>

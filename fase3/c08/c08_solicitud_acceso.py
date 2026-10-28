@@ -84,7 +84,10 @@ def aprobar(sid, aprobador, dias=0):
                 "resources": {"database": {"values": [db]}, "table": {"values": [tabla]}, "column": {"values": ["*"]}},
                 "policyItems": [{"users": [usuario], "accesses": [{"type": "select", "isAllowed": True}]}]}
     if dias:
-        ahora = dt.datetime.now()
+        # Hora de Costa Rica explicita (UTC-6, sin horario de verano): el contenedor de Cloudera AI corre en UTC y
+        # Ranger interpreta las fechas en el timeZone indicado. Leccion 28-oct: con now() del contenedor (UTC) y
+        # timeZone America/Costa_Rica la politica nacia 6 h en el futuro y el acceso no se activaba.
+        ahora = dt.datetime.now(dt.timezone(dt.timedelta(hours=-6))).replace(tzinfo=None) - dt.timedelta(minutes=5)
         politica["validitySchedules"] = [{"startTime": f"{ahora:%Y/%m/%d %H:%M:%S}",
                                           "endTime": f"{ahora + dt.timedelta(days=int(dias)):%Y/%m/%d %H:%M:%S}",
                                           "timeZone": "America/Costa_Rica"}]
