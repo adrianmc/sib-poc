@@ -22,7 +22,7 @@ user006 analista NORTE con confidencial, user008 MCP restringido.
       Sintoma si falta: timeout hacia `...dl-gateway...` (Ranger/Atlas por API)
 - [ ] Sesion de Cloudera AI con Terminal; `cd /home/cdsw`; variable `B=$(python -c "from lib.sbpoc import cfg; print(cfg()['s3']['bucket'])")`
 - [ ] Applications `sib-despachador` y `sib-accesos` en Running
-- [ ] Ambos VW (impala-sib-a e impala-sib-waa) con `default_query_options` = `ICEBERG_DISABLE_COUNT_STAR_OPTIMIZATION=true`
+- [ ] VW impala-sib-waa encendido (C02 aislamiento, C09); ambos VW (impala-sib-a e impala-sib-waa) con `default_query_options` = `ICEBERG_DISABLE_COUNT_STAR_OPTIMIZATION=true`
       (prueba: user006 `SELECT COUNT(*) FROM sb_curated.clientes` debe dar 150.464, no 1.000.000)
 - [ ] Hue desde `impala-sib-a`; una ventana de incognito por usuario de la sesion
 - [ ] Plan B de cada bloque: capturas en `evidencias/<codigo>/`
@@ -47,7 +47,7 @@ Preparacion especifica:
 | 0-10 | Apertura | Arquitectura: SQL Server -> Kafka/CDC -> Lakehouse Iceberg (raw, curada, consumible) -> CDW/Power BI; SDX (Ranger, Atlas) transversal |
 | 10-25 | C01 Lakehouse | AE-02, AE-03, AE-04, AE-07 |
 | 25-35 | C03 Integraciones | AE-01, AE-02 |
-| 35-50 | C02 Pipelines | PRE-03, AE-01, AE-05, AE-06 |
+| 35-50 | C02 Pipelines | PRE-03, PRE-06, AE-01, AE-05, AE-06, AE-09, AE-10 |
 | 50-65 | C04 Power BI | PRE-01, AE-01, AE-03 |
 | 65-80 | C01-AE-05 CDC | SIEMPRE despues de C02 (ver nota) |
 | 80-90 | Preguntas | |
@@ -84,6 +84,19 @@ Bloc de notas:
 | 3 | Crear marcador y Run de `sib-pipeline` | a ~1.5 min: `Paso 3 intento 1: FALLIDO ... FALLO CONTROLADO` | AE-05 |
 | 4 | Apenas aparezca el FALLIDO, borrar el marcador | `Paso 3 intento 2: EXITOSO`, calidad corre sola | AE-06 (recuperacion) |
 | 5 | Hue: `SELECT paso, intento, estado, mensaje FROM sb_consumption.pipeline_pasos ORDER BY inicio DESC LIMIT 6;` | paso 3 FALLIDO y EXITOSO | AE-05, AE-06 |
+Rendimiento 50 -> 500 usuarios (C02-PRE-06, AE-10), corrido el 29-oct; en la sesion se muestra la tabla y no se re-ejecuta (11 min):
+| Usuarios | Exitosas/s fijo | Exitosas/s WAA | Errores fijo | Errores WAA | p95 fijo | p95 WAA |
+|---|---|---|---|---|---|---|
+| 50 | 114 | 120 | 0 | 0 | 541 ms | 551 ms |
+| 200 | 60 | 135 | 0 | 0 | 4.1 s | 1.8 s |
+| 300 | 46 | 138 | 1.720 | 0 | 7.6 s | 2.5 s |
+| 500 | 71 | 118 | 2.595 | 0 | 8.2 s | 4.9 s |
+Fijo = impala-sib-a; WAA = impala-sib-waa (2 ejecutores en reposo, 4 en el pico). Detalle en sb_consumption.metricas_rendimiento.
+Aislamiento (C02-AE-09) EN VIVO [PEND]: carga en impala-sib-waa (sesion CAI 8 vCPU) y sonda en impala-sib-a desde OTRA sesion:
+  sesion 1: `python fase3/c02/c02_prueba_carga.py --prueba aislamiento --depto b --niveles 500 --segundos 300 --sin-registro`
+  sesion 2 (30 s despues): `python fase3/c02/c02_prueba_carga.py --prueba sonda_carga --depto a --niveles 1 --segundos 240 --sin-registro`
+  Linea base de la sonda sin carga: p50 123 ms, p95 280 ms. RIESGO: con la sonda en el MISMO proceso que la carga, la sonda subio
+  a 3.3 s (probable cuello de botella del cliente: el rendimiento se estanca en ~135 consultas/s). No validado en dos sesiones.
 Lecciones: con `--espera 60` no hubo tiempo de borrar el marcador (usar 180); la carpeta `sb/control` debe existir
 (`hdfs dfs -mkdir -p s3a://$B/sb/control`). Cierre: confirmar el marcador borrado.
 
@@ -227,13 +240,15 @@ va en `fase3/c06/modelo_riesgo.pkl` (el build excluye lo de .gitignore); `track_
 AI Registry requirio MLUser + Synchronize Users y, con RAZ, el machine user del registro en Ranger cm_s3 "all - bucket, path".
 Si RAG o MCP no quedan listos: se declaran parciales con la arquitectura.
 
-## C09 Administracion y FinOps [PEND]
+## C09 Administracion y FinOps [AE-02 y AE-04 OK 29-oct; AE-01 capturas PEND]
 | # | Accion | Se ve | Prueba |
 |---|---|---|---|
 | 1 | Costos por proyecto y ambiente (tags + vista de consumo) | granularidad real del ambiente | AE-01 |
-| 2 | Costo base vs pico (`metricas_rendimiento` + calculadora) | numeros de la calculadora | AE-02 |
-| 3 | Cuello de botella: DROP STATS, consulta lenta, Query Profile, COMPUTE STATS, consulta rapida | diagnostico con evidencia | AE-04 |
+| 2 | Corrida corta en vivo: `python fase3/c02/c02_prueba_carga.py --prueba waa_vivo --depto b --niveles 50,100,200,300 --segundos 30 --sin-registro` + consola del VW (ejecutores 2 -> 4) | 0 errores; costo base 2 ejecutores vs pico 4, tope por Max groups | AE-02 |
+| 3 | Cuello de botella: DROP STATS, consulta lenta, Query Profile, COMPUTE STATS, consulta rapida (validado 29-oct, tiempos anotados por Adrian) | diagnostico con evidencia | AE-04 |
 | 4 | HA y perdida de nodo; DR | explicacion con diagrama | AE-05, AE-07 [DECL] |
+Grafana del VW pidio un login distinto (no entro con user001 ni con el workload propio): evidencia del autoescalado desde la consola de CDW.
+Costo/hora por ejecutor (CCU + EC2): lo aporta el AE con la calculadora.
 Precision AE-05: Impala reintenta la consulta, no la continua. AE-03 (modelo comercial), AE-06 y PRE-03/04 (SLA, RTO/RPO,
 costos) los presenta el AE con valores oficiales.
 

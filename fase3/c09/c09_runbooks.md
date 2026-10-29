@@ -14,6 +14,11 @@
   `python fase3/c02/c02_prueba_carga.py --prueba recursos_fijos --niveles 50,100,150,200,250,300,350,400,450,500 --segundos 60`
   (sesion de CAI de 8 vCPU / 16 GB; ~11 min). Resultado por escalon en sb_consumption.metricas_rendimiento y en el CSV.
 - Costo base = nodos minimos x costo/hora; costo pico = nodos maximos observados x duracion (tomar de Grafana CDW + la calculadora).
+- RESULTADO 29-oct (VW impala-sib-waa, WAA Small 2x1..4 / Large 8x0..2): 50 a 500 usuarios, 0 errores, 118-138 consultas
+  exitosas/s, p95 551 ms -> 4.9 s. Ejecutores: 2 en reposo, 4 en el pico (WAA agrego un grupo Small y luego lo retiro).
+  Comparacion con recursos fijos (impala-sib-a): desde 250 usuarios rechazos (2.595 errores a 500) y p95 8.2 s.
+  Costo: base = 2 ejecutores x costo/hora por ejecutor; pico = 4 ejecutores x costo/hora durante la ventana de pico
+  (~11 min). El costo/hora por ejecutor (CCU + EC2) lo aporta el AE con la calculadora.
 - Controles: maximo de ejecutores del VW (WAA), auto-suspend del VW, cuotas de CPU/memoria por usuario en Cloudera AI, AWS Budgets con alerta al 80%.
 
 ## C09-AE-03: modelo comercial  -> **responsable: AE** (el SE acompana con la calculadora y los supuestos tecnicos)
