@@ -7,7 +7,7 @@ Fuentes (varias APIs / endpoints con la misma credencial), definidas en FUENTES:
   - Tipo de cambio:  FX_DAILY (USD -> EUR)
   - Indicadores:     TREASURY_YIELD (10 anos, mensual) y FEDERAL_FUNDS_RATE (mensual)
 
-Ejecutar en Cloudera AI (sesion Python o Job programado), usuario sb_ing01:
+Ejecutar en Cloudera AI (Terminal, sesion o Job programado), usuario 'ingeniero' del config (user002):
   python fase3/c03/c03_ingesta_alphavantage.py                 # todas las fuentes
   python fase3/c03/c03_ingesta_alphavantage.py --solo fx_usd_eur
   python fase3/c03/c03_ingesta_alphavantage.py --sin-clave     # demo de fallo: la API rechaza y se registra el error

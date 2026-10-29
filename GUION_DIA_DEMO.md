@@ -1,15 +1,16 @@
 # Guion operativo de la demo SIB: 3 sesiones de 1.5 h
 
-Estado: VERSION FINAL 28-oct (dry-run 29-oct). Orden definido por el equipo Cloudera.
+Estado: VERSION FINAL 28-oct. Orden definido por el equipo Cloudera.
+Fechas: sesion 1 lun 2-nov, sesion 2 mie 4-nov, sesion 3 vie 6-nov. Dry-run sesiones 1 y 2: vie 30-oct; dry-run sesion 3: jue 5-nov.
 Convenciones: [OK] validado en vivo, [PEND] por validar en el dry-run, [DECL] se declara sin demostrar.
 Usuarios: user001 admin, user002 ingeniero, user003 cientifico, user005 analista CENTRAL sin confidencial,
 user006 analista NORTE con confidencial, user008 MCP restringido.
 
 | Sesion | Tema | Bloques | Hilo narrativo |
 |---|---|---|---|
-| 1 | Plataforma y datos | C01, C03, C02, C04, C01-AE-05 CDC | Del origen SQL Server al tablero |
-| 2 | Seguridad, gobierno y DevOps | C07, C08, C05 | Quien ve que, como se audita y como se despliega |
-| 3 | IA y operacion | C06, C09 | Del dato gobernado al modelo en produccion, y lo que cuesta operarlo |
+| 1 (2-nov) | Plataforma y datos | C01, C03, C02, C04, C01-AE-05 CDC | Del origen SQL Server al tablero |
+| 2 (4-nov) | Seguridad, gobierno y DevOps | C07, C08, C05 | Quien ve que, como se audita y como se despliega |
+| 3 (6-nov) | IA y operacion | C06, C09 | Del dato gobernado al modelo en produccion, y lo que cuesta operarlo |
 
 ---
 
@@ -62,8 +63,9 @@ C01-AE-06 (motor externo sin exportar) se muestra en la sesion 2 con C08-AE-07.
 ## C03 Integraciones [PEND] ~10 min
 | # | Accion | Se ve | Prueba |
 |---|---|---|---|
-| 1 | Hue: `SELECT * FROM sb_curated.mercado_series LIMIT 10` (ingesta Alpha Vantage) | 4 series con filas | AE-02 |
-| 2 | APIs de la plataforma (curl de `fase3/c03/c03_apis_y_diagramas.md`) | listar y ejecutar por API | AE-01, PRE-02 |
+| 1 | Terminal CAI: `python fase3/c03/c03_ingesta_alphavantage.py --desde-cache` + Hue: `SELECT serie, COUNT(*), MAX(fecha) FROM sb_curated.mercado_series GROUP BY serie;` | 4 series (accion, FX, tesoro, tasa Fed) con filas; JSON crudo en sb_raw.api_alphavantage | AE-02 |
+| 1b | `--sin-clave` | la API rechaza y el script falla con mensaje accionable | AE-02 (manejo de errores) |
+| 2 | Terminal CAI: `python fase3/c03/c03_ae01_apis_plataforma.py --ejecutar-job sib-calidad` | Atlas, Ranger, CAI API v2 y SQL con estado y ms; Job lanzado por API | AE-01, PRE-02 |
 | 3 | Diagramas Entra, SharePoint, D365, IDMC, CipherTrust | documental | AE-03..07 [DECL] |
 
 ## C02 Pipelines [OK 22/23-oct; recuperacion PEND dry-run] ~15 min

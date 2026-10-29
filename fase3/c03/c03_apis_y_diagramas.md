@@ -12,14 +12,10 @@
 | ML | CML API v2, endpoints de modelos, AI Inference (compatible OpenAI) | prediccion `curl` |
 | Lakehouse abierto | Iceberg REST Catalog | PyIceberg (C01-AE-06) |
 
-Pruebas (Terminal). Reemplazar valores CAMBIAR:
-```
-curl -u sb_ing01:CAMBIAR "https://CAMBIAR_CDE_SERVICE_HOST/gateway/authtkn/knoxtoken/api/v1/token"
-curl -H "Authorization: Bearer CAMBIAR_TOKEN" "https://CAMBIAR_VC_A_HOST/dex/api/v1/jobs"
-curl -X POST -H "Authorization: Bearer CAMBIAR_TOKEN" "https://CAMBIAR_VC_A_HOST/dex/api/v1/jobs/sb-pipeline-batch/run"
-curl -u sb_admin01:CAMBIAR "https://CAMBIAR_GATEWAY_HOST/CAMBIAR_DATALAKE/cdp-proxy-api/atlas/api/atlas/v2/search/basic?typeName=hive_table&query=sb_curated"
-curl -u sb_admin01:CAMBIAR "https://CAMBIAR_GATEWAY_HOST/CAMBIAR_DATALAKE/cdp-proxy-api/ranger/service/public/v2/api/policy?policyNamePartial=sb_"
-```
+Prueba en vivo (Terminal de CAI), sin valores a mano: `python fase3/c03/c03_ae01_apis_plataforma.py`
+(Atlas, Ranger, Cloudera AI API v2 jobs/applications/models y SQL de CDW, con estado y tiempo por superficie).
+Con `--ejecutar-job sib-calidad` ademas lanza un Job por API. CDE no esta en el tenant: su API se declara.
+Control plane: `cdp environments list-environments` si la CLI de CDP esta configurada en la laptop.
 
 ## C03-AE-03: Entra ID (escenario; en la demo el IdP es Keycloak con el mismo patron SAML)
 ```mermaid
