@@ -12,6 +12,7 @@ Ejecutar en una sesion de Cloudera AI con perfil de 8 vCPU / 16 GB (500 conexion
   resultados_carga_<prueba>.csv (detalle) + fila resumen en sb_consumption.metricas_rendimiento.
 """
 import argparse
+import collections
 import csv
 import random
 import statistics
@@ -75,7 +76,9 @@ def nivel(n_usuarios, segundos, depto, sonda_depto=None):
     lat = sorted(r[0] for r in ok) or [0]
     registros = sum(r[1] for r in ok)
     lat_s = sorted(r[0] for r in sonda if not r[2]) or [0]
+    tipos = collections.Counter(r[2][:60] for r in resultados if r[2]).most_common(2)
     return {"usuarios": n_usuarios, "consultas": len(resultados), "errores": len(resultados) - len(ok),
+            "exitosas_s": round(len(ok) / segundos, 1), "tipos_error": " | ".join(f"{n}x {t}" for t, n in tipos),
             "p50_ms": statistics.median(lat), "p95_ms": lat[int(len(lat) * .95) - 1] if len(lat) > 1 else lat[0],
             "registros_por_ms": registros / (segundos * 1000),
             "sonda_p50_ms": statistics.median(lat_s) if sonda_depto else ""}
@@ -88,11 +91,13 @@ def main():
     ap.add_argument("--segundos", type=int, default=120)
     ap.add_argument("--depto", default="a")
     ap.add_argument("--sonda-depto", choices=["a", "b"], help="VW del otro tenant a observar durante la carga")
+    ap.add_argument("--sin-registro", action="store_true", help="no insertar en sb_consumption.metricas_rendimiento")
     a = ap.parse_args()
     usd_hora = cfg()["costos"]["usd_hora_vw_impala"] or 0
     salida = Path(f"resultados_carga_{a.prueba}.csv")
     with open(salida, "w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=["usuarios", "consultas", "errores", "p50_ms", "p95_ms", "registros_por_ms", "sonda_p50_ms"])
+        w = csv.DictWriter(f, fieldnames=["usuarios", "consultas", "errores", "exitosas_s", "p50_ms", "p95_ms", "registros_por_ms",
+                                          "sonda_p50_ms", "tipos_error"])
         w.writeheader()
         for n in [int(x) for x in a.niveles.split(",")]:
             r = nivel(n, a.segundos, a.depto, a.sonda_depto)
@@ -101,8 +106,12 @@ def main():
             costo = usd_hora * a.segundos / 3600
             reg_usd = (r["registros_por_ms"] * a.segundos * 1000 / costo) if costo else 0
             print(f"{n:>4} usuarios | {r['consultas']:>6} consultas | {r['errores']:>4} errores | "
-                  f"p50 {r['p50_ms']:.0f} ms | p95 {r['p95_ms']:.0f} ms | {r['registros_por_ms']:.2f} reg/ms"
-                  + (f" | sonda depto {a.sonda_depto} p50 {r['sonda_p50_ms']:.0f} ms" if a.sonda_depto else ""))
+                  f"{r['exitosas_s']:>6} ok/s | p50 {r['p50_ms']:.0f} ms | p95 {r['p95_ms']:.0f} ms | {r['registros_por_ms']:.2f} reg/ms"
+                  + (f" | sonda depto {a.sonda_depto} p50 {r['sonda_p50_ms']:.0f} ms" if a.sonda_depto else ""), flush=True)
+            if r["tipos_error"]:
+                print(f"       errores: {r['tipos_error']}", flush=True)
+            if a.sin_registro:
+                continue
             con = impala("admin", a.depto)
             cur = con.cursor()
             cur.execute(f"""INSERT INTO sb_consumption.metricas_rendimiento VALUES ('{a.prueba}', {n}, {r['consultas']},
