@@ -29,3 +29,8 @@ INSERT INTO sb_consumption.resumen_cliente_mensual SELECT * FROM sb_consumption.
 -- C07-AE-03 (misma politica en SQL, BI y notebook): ejecutar esta misma consulta con sb_analista01 en
 --   (1) Hue, (2) Power BI Desktop, (3) CML con fase3/c07/c07_ae03_notebook.py -> mismo resultado enmascarado.
 SELECT identificacion, region FROM sb_curated.clientes ORDER BY id_cliente LIMIT 3;
+
+-- Control 29-oct (hallazgo Iceberg COUNT(*) + filtro de fila): como user006 debe dar 150.464 (solo NORTE), no 1.000.000.
+-- Si da 1.000.000, falta ICEBERG_DISABLE_COUNT_STAR_OPTIMIZATION=true en default_query_options del VW.
+SELECT COUNT(*) FROM sb_curated.clientes;
+EXPLAIN SELECT COUNT(*) FROM sb_curated.clientes;   -- con la mitigacion debe aparecer un SCAN de la tabla

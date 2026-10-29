@@ -22,6 +22,8 @@ user006 analista NORTE con confidencial, user008 MCP restringido.
       Sintoma si falta: timeout hacia `...dl-gateway...` (Ranger/Atlas por API)
 - [ ] Sesion de Cloudera AI con Terminal; `cd /home/cdsw`; variable `B=$(python -c "from lib.sbpoc import cfg; print(cfg()['s3']['bucket'])")`
 - [ ] Applications `sib-despachador` y `sib-accesos` en Running
+- [ ] Ambos VW (impala-sib-a e impala-sib-waa) con `default_query_options` = `ICEBERG_DISABLE_COUNT_STAR_OPTIMIZATION=true`
+      (prueba: user006 `SELECT COUNT(*) FROM sb_curated.clientes` debe dar 150.464, no 1.000.000)
 - [ ] Hue desde `impala-sib-a`; una ventana de incognito por usuario de la sesion
 - [ ] Plan B de cada bloque: capturas en `evidencias/<codigo>/`
 
@@ -145,6 +147,11 @@ En cada ventana (Hue, Impala): `SELECT identificacion, nombre, region FROM sb_cu
 | user001 | todo en claro | AE-05 |
 Luego Ranger > Audit > Access filtrando user005: Allowed y Denied (C07-AE-01 y C08-AE-04).
 Narrativa: permisos con roles de Ranger, atributos como roles, PII/CONFIDENCIAL por tags de Atlas.
+Hallazgo 29-oct (corregido en la configuracion de los VW): en Iceberg, Impala responde `COUNT(*)` sin predicado desde los
+metadatos del snapshot (EXPLAIN: `00:UNION constant-operands=1`, sin SCAN) y NO aplica el filtro de fila de Ranger: user006
+obtenia 1.000.000 en vez de 150.464. Los datos nunca se expusieron (cualquier lectura real filtra bien); el riesgo era la
+cardinalidad total y conteos incorrectos en BI. Mitigacion: `ICEBERG_DISABLE_COUNT_STAR_OPTIMIZATION=true` como opcion por
+defecto del VW. Si la SIB pregunta: se declara como hallazgo de la PoC, mitigado y reportado a ingenieria de Cloudera.
 
 ## C08 Gobierno [OK 27/28-oct, AE-07 plan C validado 28-oct] ~40 min
 | # | Accion | Se ve | Prueba |
