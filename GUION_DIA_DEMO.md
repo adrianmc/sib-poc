@@ -60,7 +60,9 @@ Preparacion especifica:
 Leccion: `config.yaml impala.host_depto_a` debe ser el host de impala-sib-a (404 con el viejo).
 C01-AE-06 (motor externo sin exportar) se muestra en la sesion 2 con C08-AE-07.
 
-## C03 Integraciones [PEND] ~10 min
+## C03 Integraciones [AE-01/02 OK 29-oct] ~10 min
+Validado 29-oct: 7/7 superficies OK; Alpha Vantage accion_ibm 100, fx_usd_eur 100, tesoro_10a 882, tasa_fed 867 filas
+(2.7 a 4 s por fuente). En la demo usar --desde-cache (no gasta cuota: 25 solicitudes/dia, 4 por corrida).
 | # | Accion | Se ve | Prueba |
 |---|---|---|---|
 | 1 | Terminal CAI: `python fase3/c03/c03_ingesta_alphavantage.py --desde-cache` + Hue: `SELECT serie, COUNT(*), MAX(fecha) FROM sb_curated.mercado_series GROUP BY serie;` | 4 series (accion, FX, tesoro, tasa Fed) con filas; JSON crudo en sb_raw.api_alphavantage | AE-02 |

@@ -3,20 +3,24 @@
 ## C09-PRE-01 / AE-01: costos por proyecto y ambiente (showback)
 - Tags definidos al crear el ambiente (Fase 1): `proyecto=sb-poc`, `ambiente=poc`, `centro_costo=CAMBIAR`. CDP los propaga a EC2, EBS, EKS y S3.
 - **CDP Management Console > Consumption / Usage**: consumo de creditos por servicio y por Virtual Warehouse / Virtual Cluster / Workspace
-  (granularidad por tenant: impala-depto-a vs impala-depto-b, vc-depto-a vs vc-depto-b).
+  (granularidad real del tenant de la PoC: Data Lake, Data Hubs sibrd-kafka, VW impala-sib-a, workspace de Cloudera AI).
+  Filtro de fechas: el periodo de la PoC. Captura: consumo por servicio y por recurso.
 - **AWS Cost Explorer**: Group by Tag `proyecto` y `ambiente` (activar los tags como cost allocation tags en Billing, 24 h antes).
+  Si la cuenta AWS de demo no da acceso a Billing/Cost Explorer: declarar y mostrar los tags en las instancias EC2 del ambiente.
 - Chargeback por usuario/consulta: Cloudera Observability (SKU adicional). Declararlo.
 
 ## C09-PRE-02 / AE-02: escenario de pico y control de sobreconsumo
-- Pico definido: 500 usuarios concurrentes durante 15 min sobre impala-depto-a (`c02_prueba_carga.py --prueba autoscaling --niveles 50,500 --segundos 900`).
+- Pico medido (una sola corrida cubre tambien C02-PRE-06/AE-10): escalones de 50 en 50 hasta 500 usuarios sobre impala-sib-a,
+  `python fase3/c02/c02_prueba_carga.py --prueba recursos_fijos --niveles 50,100,150,200,250,300,350,400,450,500 --segundos 60`
+  (sesion de CAI de 8 vCPU / 16 GB; ~11 min). Resultado por escalon en sb_consumption.metricas_rendimiento y en el CSV.
 - Costo base = nodos minimos x costo/hora; costo pico = nodos maximos observados x duracion (tomar de Grafana CDW + la calculadora).
-- Controles: maximo de ejecutores del VW (WAA), auto-suspend del VW, cuotas de CPU/memoria en CDE y CML, AWS Budgets con alerta al 80%.
+- Controles: maximo de ejecutores del VW (WAA), auto-suspend del VW, cuotas de CPU/memoria por usuario en Cloudera AI, AWS Budgets con alerta al 80%.
 
 ## C09-AE-03: modelo comercial  -> **responsable: AE** (el SE acompana con la calculadora y los supuestos tecnicos)
 Componentes: consumo Cloudera (CCU por servicio y hora), infraestructura AWS en la cuenta del cliente (EC2, EBS, S3, red), soporte.
 
 ## C09-AE-04: cuello de botella provocado y diagnostico
-1. Borrar estadisticas y lanzar una consulta con join grande (Hue, sb_admin01):
+1. Borrar estadisticas y lanzar una consulta con join grande (Hue, user001, VW impala-sib-a):
 ```sql
 DROP STATS sb_curated.transacciones;
 SELECT c.region, COUNT(*) FROM sb_curated.transacciones t
