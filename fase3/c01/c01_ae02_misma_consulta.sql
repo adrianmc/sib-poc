@@ -1,4 +1,4 @@
--- C01-AE-02 (parte SQL). Herramienta: Hue -> Impala, usuario sb_analista02.
+-- C01-AE-02 (parte SQL). Herramienta: Hue -> Impala, usuario user006.
 -- La MISMA consulta se ejecuta luego en Cloudera AI (c01_ae02_notebook.py) sobre la misma tabla fisica.
 -- Se usan funciones exactas (COUNT DISTINCT, no NDV) para que los resultados coincidan entre motores.
 SELECT c.region,

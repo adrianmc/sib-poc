@@ -1,5 +1,5 @@
 -- C01-AE-03: INSERT / UPDATE / DELETE / MERGE sobre Iceberg V2, con datos de origen en CSV, Avro y Parquet.
--- Herramienta: Hue -> Impala, usuario sb_ing01. Se trabaja sobre una copia en el sandbox.
+-- Herramienta: Hue -> Impala, usuario user002. Se trabaja sobre una copia en el sandbox.
 
 CREATE TABLE sb_sandbox_depto_a.transacciones_demo
 STORED AS ICEBERG TBLPROPERTIES ('format-version'='2')

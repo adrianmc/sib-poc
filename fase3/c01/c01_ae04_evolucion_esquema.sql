@@ -1,4 +1,4 @@
--- C01-AE-04: evolucion de esquema sin reescribir datos ni romper consultas. Hue -> Impala, sb_ing01.
+-- C01-AE-04: evolucion de esquema sin reescribir datos ni romper consultas. Hue -> Impala, user002.
 SELECT COUNT(*) FROM sb_sandbox_depto_a.transacciones_demo;
 
 ALTER TABLE sb_sandbox_depto_a.transacciones_demo
