@@ -62,7 +62,7 @@ Preparacion especifica:
 Leccion: `config.yaml impala.host_depto_a` debe ser el host de impala-sib-a (404 con el viejo).
 C01-AE-06 (motor externo sin exportar) se muestra en la sesion 2 con C08-AE-07.
 
-## C03 Integraciones [AE-01/02 OK 29-oct] ~10 min
+## C03 Integraciones [AE-01/02 OK 29-oct, incluido --sin-clave] ~10 min
 Validado 29-oct: 7/7 superficies OK; Alpha Vantage accion_ibm 100, fx_usd_eur 100, tesoro_10a 882, tasa_fed 867 filas
 (2.7 a 4 s por fuente). En la demo usar --desde-cache (no gasta cuota: 25 solicitudes/dia, 4 por corrida).
 | # | Accion | Se ve | Prueba |
@@ -150,7 +150,7 @@ Preparacion especifica:
 | 60-80 | C05 CI/CD | AE-01..05 |
 | 80-90 | Preguntas | |
 
-## C07 Seguridad [OK 22-oct; capturas PEND] ~15 min
+## C07 Seguridad [OK 22-oct; capturas 29-oct] ~15 min
 En cada ventana (Hue, Impala): `SELECT identificacion, nombre, region FROM sb_curated.clientes LIMIT 3;` y
 `SELECT id_credito, saldo_pendiente FROM sb_curated.creditos LIMIT 3;`
 | Usuario | Esperado | Prueba |
@@ -240,7 +240,7 @@ va en `fase3/c06/modelo_riesgo.pkl` (el build excluye lo de .gitignore); `track_
 AI Registry requirio MLUser + Synchronize Users y, con RAZ, el machine user del registro en Ranger cm_s3 "all - bucket, path".
 Si RAG o MCP no quedan listos: se declaran parciales con la arquitectura.
 
-## C09 Administracion y FinOps [AE-02 y AE-04 OK 29-oct; AE-01 capturas PEND]
+## C09 Administracion y FinOps [AE-01 capturas, AE-02 y AE-04 OK 29-oct]
 | # | Accion | Se ve | Prueba |
 |---|---|---|---|
 | 1 | Costos por proyecto y ambiente (tags + vista de consumo) | granularidad real del ambiente | AE-01 |
