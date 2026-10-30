@@ -57,6 +57,8 @@ Cada paso del guion cita estos codigos [N#]. Nombres que dependen del tenant van
 
 # SESION 1: Plataforma y datos (90 min)
 
+**Para ejecutar la sesion 1 usar `GUION_SESION_1.md` (paso a paso completo, autocontenido).** Lo de abajo es el resumen.
+
 Preparacion especifica de la sesion 1 (despues de la comun). Los scripts de demo son repetibles por si mismos
 (C01-AE-03 empieza con DROP IF EXISTS de su tabla de sandbox; el CDC calcula sus ids): no hay limpieza previa.
 | Paso | Como | Verificacion |

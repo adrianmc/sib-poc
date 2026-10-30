@@ -12,9 +12,14 @@ print(f"Impala desde notebook: {len(filas)} filas en {ms:.0f} ms")
 for f in filas[:10]:
     print(f)
 
-# Via Spark (conexion de datos de CML hacia el Data Lake). Nombre de la conexion: ver "Data" en el proyecto.
-import cml.data_v1 as cmldata
-spark = cmldata.get_connection("CAMBIAR_NOMBRE_CONEXION_SPARK").get_spark_session()
-spark.conf.set("spark.sql.iceberg.handle-timestamp-without-timezone", "true")
-spark.sql(SQL).show(10, truncate=False)
-# Comparar con la salida de Impala: mismas filas y mismos valores (consulta con funciones exactas).
+# Via Spark (opcional): solo si el proyecto tiene una conexion de datos Spark configurada (Data > Connections).
+# Sin ella, la prueba de dos motores es Hue (Impala, interfaz) + este script (impyla, Python): misma tabla fisica.
+import os
+CONEXION = os.environ.get("SBPOC_SPARK_CONN", "")
+if CONEXION:
+    import cml.data_v1 as cmldata
+    spark = cmldata.get_connection(CONEXION).get_spark_session()
+    spark.conf.set("spark.sql.iceberg.handle-timestamp-without-timezone", "true")
+    spark.sql(SQL).show(10, truncate=False)
+else:
+    print("Spark: sin conexion configurada (opcional); comparacion Hue vs Python sobre la misma tabla Iceberg.")
