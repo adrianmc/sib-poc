@@ -35,10 +35,21 @@ def probar(superficie, endpoint, funcion):
 
 
 def atlas():
+    """Busca las tablas de sb_curated en Atlas. Segun como se crearon, quedan como iceberg_table o hive_table."""
     s, url = knox("atlas")
-    r = s.get(f"{url}/search/basic", params={"typeName": "iceberg_table", "query": "sb_curated", "limit": 50}, timeout=30)
-    nombres = sorted(e["attributes"].get("qualifiedName", "") for e in r.json().get("entities", []))[:5]
-    return r.status_code, f"{len(r.json().get('entities', []))} tablas Iceberg sb_curated, ej. {nombres[:3]}"
+    vistos, codigo = {}, 0
+    for tipo in ("iceberg_table", "hive_table"):
+        cuerpo = {"typeName": tipo, "excludeDeletedEntities": True, "limit": 100,
+                  "entityFilters": {"attributeName": "qualifiedName", "operator": "startsWith",
+                                    "attributeValue": "sb_curated."}}
+        r = s.post(f"{url}/search/basic", json=cuerpo, timeout=30)
+        codigo = codigo or r.status_code
+        for e in (r.json().get("entities") or []) if r.status_code == 200 else []:
+            qn = e.get("attributes", {}).get("qualifiedName", "")
+            if qn.startswith("sb_curated."):
+                vistos[qn] = tipo
+    ej = sorted(q.split("@")[0] for q in vistos)[:3]
+    return codigo, f"{len(vistos)} tablas de sb_curated catalogadas, ej. {ej}"
 
 
 def ranger():
@@ -72,7 +83,7 @@ def main():
     a = leer_argumentos(ap)
     c = cfg()
     print(f"Knox: {c['datalake']['knox_api']}\nCloudera AI: {c.get('cai', {}).get('url', '')}\n", flush=True)
-    probar("Atlas REST v2", "/atlas/api/atlas/v2/search/basic", atlas)
+    probar("Atlas REST v2", "POST /atlas/api/atlas/v2/search/basic", atlas)
     probar("Ranger REST", "/ranger/service/public/v2/api/policy", ranger)
     probar("Cloudera AI API v2", "/api/v2/projects/{id}/jobs", cai("jobs"))
     probar("Cloudera AI API v2", "/api/v2/projects/{id}/applications", cai("applications"))
