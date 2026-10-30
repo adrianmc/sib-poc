@@ -1,6 +1,9 @@
 -- C01-AE-03: INSERT / UPDATE / DELETE / MERGE sobre Iceberg V2, con datos de origen en CSV, Avro y Parquet.
 -- Herramienta: Hue -> Impala, usuario user002. Se trabaja sobre una copia en el sandbox.
 
+-- Arranque limpio (repetible): solo toca la tabla de demo del sandbox, nunca las capas raw/curada/consumible
+DROP TABLE IF EXISTS sb_sandbox_depto_a.transacciones_demo PURGE;
+
 CREATE TABLE sb_sandbox_depto_a.transacciones_demo
 STORED AS ICEBERG TBLPROPERTIES ('format-version'='2')
 AS SELECT id_transaccion, id_cuenta, CAST(fecha_hora AS TIMESTAMP) fecha_hora, tipo, canal,

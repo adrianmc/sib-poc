@@ -6,7 +6,9 @@
 
 -- AE-03 (antes de ejecutar el cambio): Atlas > buscar sb_curated.entidades_financieras > Lineage.
 -- Se ven los consumidores: sb_curated.transacciones (pipeline) -> resumen/vistas -> Tablero Cartera (entidad custom).
--- Cambio controlado (sandbox para no romper la demo):
+-- Cambio controlado (sandbox para no romper la demo). Arranque limpio (repetible):
+DROP VIEW IF EXISTS sb_sandbox_depto_a.v_tx_por_entidad;
+DROP TABLE IF EXISTS sb_sandbox_depto_a.entidades_copia PURGE;
 CREATE TABLE sb_sandbox_depto_a.entidades_copia STORED AS ICEBERG AS SELECT * FROM sb_curated.entidades_financieras;
 CREATE VIEW sb_sandbox_depto_a.v_tx_por_entidad AS
   SELECT e.nombre, COUNT(*) n FROM sb_curated.transacciones t

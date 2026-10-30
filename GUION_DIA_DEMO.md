@@ -57,18 +57,17 @@ Cada paso del guion cita estos codigos [N#]. Nombres que dependen del tenant van
 
 # SESION 1: Plataforma y datos (90 min)
 
-Preparacion especifica de la sesion 1 (despues de la comun):
+Preparacion especifica de la sesion 1 (despues de la comun). Los scripts de demo son repetibles por si mismos
+(C01-AE-03 empieza con DROP IF EXISTS de su tabla de sandbox; el CDC calcula sus ids): no hay limpieza previa.
 | Paso | Como | Verificacion |
 |---|---|---|
 | 1. Conector CDC | N6 | Conector y Task 0 RUNNING (si la EC2 estuvo apagada, la tarea queda FAILED: Restart) |
-| 2. Limpiar el cliente demo del CDC | En la EC2: SSMS > **New Query** > `DELETE FROM sbcore.dbo.clientes WHERE id_cliente = 9000001;` > **Execute** | "1 row affected" o "0 rows" (si no existia) |
-| 3. Limpiar la tabla de C01-AE-03 | N8 como user002: `DROP TABLE IF EXISTS sb_sandbox_depto_a.transacciones_demo PURGE;` | OK |
-| 4. Carpeta de control de C02 vacia | Terminal (N9): `hdfs dfs -mkdir -p s3a://$B/sb/control && hdfs dfs -ls s3a://$B/sb/control/` | Sin archivos listados |
-| 5. Argumentos del Job | N11: job `sib-pipeline` > Settings > Arguments = `--version v1 --reintentos 3 --espera 180` | Guardado |
-| 6. Datos de C03 desde cache | N18: `python fase3/c03/c03_ingesta_alphavantage.py --desde-cache` | 4 series con filas |
-| 7. Power BI | N15: fuente = host de `impala-sib-a`, credencial user006, pagina **AE-01** con Page refresh 5 s | Tarjeta y tabla cargadas, solo NORTE |
-| 8. SQL de C04 listo | N8 como user001: dejar escritos (sin ejecutar) el UPDATE +1000 y el -1000 del `id_credito` de la tabla AE-01 | Editor con las dos sentencias |
-| 9. Bloc de notas de C02 | Copiar los comandos de crear y borrar el marcador (bloque C02) | Listos para pegar |
+| 2. Carpeta de control de C02 vacia | Terminal (N9): `hdfs dfs -mkdir -p s3a://$B/sb/control && hdfs dfs -ls s3a://$B/sb/control/` | Sin archivos listados |
+| 3. Argumentos del Job | N11: job `sib-pipeline` > Settings > Arguments = `--version v1 --reintentos 3 --espera 180` | Guardado |
+| 4. Datos de C03 desde cache | N18: `python fase3/c03/c03_ingesta_alphavantage.py --desde-cache` | 4 series con filas |
+| 5. Power BI | N15: fuente = host de `impala-sib-a`, credencial user006, pagina **AE-01** con Page refresh 5 s | Tarjeta y tabla cargadas, solo NORTE |
+| 6. SQL de C04 listo | N8 como user001: dejar escritos (sin ejecutar) el UPDATE +1000 y el -1000 del `id_credito` de la tabla AE-01 | Editor con las dos sentencias |
+| 7. Bloc de notas de C02 | Copiar los comandos de crear y borrar el marcador (bloque C02) | Listos para pegar |
 
 | Min | Bloque | Contenido |
 |---|---|---|
@@ -154,9 +153,9 @@ del pipeline seria un MERGE incremental.
 |---|---|---|---|---|
 | 0 | N9 | En la sesion del dia (es nueva cada dia): `pip install -q kafka-python` | Sin error | |
 | 1 | N18 | `python fase3/c01/cdc/c01_ae05_cdc_consumidor.py` y dejarlo corriendo, ANTES de tocar SQL Server | "Consumidor CDC activo" | |
-| 2 | En la EC2: SSMS > New Query | Pegar `fase3/c01/cdc/c01_ae05_generar_cambios.sql` (desde GitHub > Raw) > **Execute** | 3 filas actualizadas, 1 insertada y el `id_borrado` (anotarlo) | AE-05 |
+| 2 | En la EC2: SSMS > New Query | Pegar `fase3/c01/cdc/c01_ae05_generar_cambios.sql` (desde GitHub > Raw) > **Execute** | 3 filas actualizadas, `id_insertado` e `id_borrado` en la grilla de resultados (anotarlos) | AE-05 |
 | 3 | Terminal del paso 1 | Esperar 15-30 s | `sb_curated.clientes: 5 eventos -> MERGE {'u': 3, 'c': 1, 'd': 1}` | AE-05 |
-| 4 | N8 user001 | `SELECT id_cliente, segmento, cdc_ts FROM sb_curated.clientes WHERE id_cliente IN (10,20,30,<id_borrado>,9000001);` y `DESCRIBE HISTORY sb_curated.clientes;` | 10/20/30 en PYME con cdc_ts de hoy, 9000001 nuevo, el id borrado ausente, snapshot nuevo | AE-05 |
+| 4 | N8 user001 | `SELECT id_cliente, segmento, cdc_ts FROM sb_curated.clientes WHERE id_cliente IN (10,20,30,<id_borrado>,<id_insertado>);` y `DESCRIBE HISTORY sb_curated.clientes;` | 10/20/30 en PYME con cdc_ts de hoy, el id insertado nuevo, el id borrado ausente, snapshot nuevo | AE-05 |
 | 5 | Terminal del paso 1 | Ctrl+C | Consumidor detenido | |
 Resultado del 27-oct: 5 eventos -> MERGE en 5.6 s.
 Lecciones: driver JDBC copiado a mano; JAAS PLAIN por conector (producer.override.*) y en schema.history.internal.*;
@@ -175,11 +174,10 @@ Preparacion especifica de la sesion 2 (despues de la comun; el Data Hub de Kafka
 | 2. API key de CAI vigente | CAI > avatar > **User Settings** > **API Keys**: si la usada en `config/config.yaml` (seccion `cai`) vencio, **Create API Key** (API v2), pegarla en `cai.api_key` y reiniciar `sib-despachador` (N10) | El despachador muestra "ultima revision" reciente y sin error |
 | 3. Tag v1.0.0 con el pipeline | Terminal (N9): `git fetch origin --tags --force && git cat-file -e v1.0.0:fase3/c02/c02_pipeline_sql.py && echo OK` | Imprime OK |
 | 4. Rama para el PR de la demo | En la laptop, carpeta `sb-poc`: `git checkout main && git pull && git checkout -b feature/demo-sesion2 && echo "demo" >> fase3/c02/LEEME_JOBS_CAI.md && git commit -am "Demo sesion 2" && git push -u origin feature/demo-sesion2 && git checkout main` (SIN `[skip ci]`) | La rama aparece en GitHub; el PR se abre en vivo |
-| 5. Limpiar C08-AE-03 | N8 como user002: `DROP VIEW IF EXISTS sb_sandbox_depto_a.v_tx_por_entidad;` y `DROP TABLE IF EXISTS sb_sandbox_depto_a.entidades_copia;` | OK |
-| 6. Power BI de C08 | N15: pagina con la tabla `nombre_entidad` + conteo, filtrada por `id_entidad_destino = 7` (credencial user001) | Nombre original de la entidad 7 |
-| 7. Power BI de C08-AE-07 | N15: segunda conexion con user011 (sin acceso todavia) | Navegador sin tablas |
-| 8. CloudShell para C08-AE-05 | N17: `B=<bucket-worm>`, luego las lineas K y V de la guia `fase3/c08/c08_auditoria_e_inmutabilidad.md` | `echo $K $V` imprime ruta y version |
-| 9. Portal limpio | N10 > abrir `sib-accesos` | Pendientes = 0; si quedo alguna de ensayos: **Rechazar** |
+| 5. Power BI de C08 | N15: pagina con la tabla `nombre_entidad` + conteo, filtrada por `id_entidad_destino = 7` (credencial user001) | Nombre original de la entidad 7 |
+| 6. Power BI de C08-AE-07 | N15: segunda conexion con user011 (sin acceso todavia) | Navegador sin tablas |
+| 7. CloudShell para C08-AE-05 | N17: `B=<bucket-worm>`, luego las lineas K y V de la guia `fase3/c08/c08_auditoria_e_inmutabilidad.md` | `echo $K $V` imprime ruta y version |
+| 8. Portal limpio | N10 > abrir `sib-accesos` | Pendientes = 0; si quedo alguna de ensayos: **Rechazar** |
 
 | Min | Bloque | Contenido |
 |---|---|---|
