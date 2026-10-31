@@ -48,7 +48,9 @@ def atlas():
             qn = e.get("attributes", {}).get("qualifiedName", "")
             if qn.startswith("sb_curated."):
                 vistos[qn] = tipo
-    ej = sorted(q.split("@")[0] for q in vistos)[:3]
+    nombres = sorted(q.split("@")[0] for q in vistos)
+    principales = [n for n in ("sb_curated.clientes", "sb_curated.creditos", "sb_curated.transacciones") if n in nombres]
+    ej = (principales or [n for n in nombres if "_stg" not in n])[:3]
     return codigo, f"{len(vistos)} tablas de sb_curated catalogadas, ej. {ej}"
 
 

@@ -43,7 +43,7 @@ def usuario(fin, resultados, candado, depto):
         cur = con.cursor()
     except Exception as e:  # noqa: BLE001
         with candado:
-            resultados.append((0, 0, str(e)[:80]))
+            resultados.append((0, 0, " ".join(str(e).split())[:200], time.time()))
         return
     while time.time() < fin:
         d = random.randint(1, 28)
@@ -54,19 +54,45 @@ def usuario(fin, resultados, candado, depto):
             n = len(cur.fetchall())
             err = ""
         except Exception as e:  # noqa: BLE001
-            n, err = 0, str(e)[:80]
+            n, err = 0, " ".join(str(e).split())[:200]
         with candado:
-            resultados.append(((time.perf_counter() - t0) * 1000, n, err))
+            resultados.append(((time.perf_counter() - t0) * 1000, n, err, time.time()))
     con.close()
+
+
+IMPRESION = threading.Lock()
+
+
+def avance(inicio, fin, resultados, candado, etiqueta, cada=10):
+    """Imprime cada `cada` segundos lo ocurrido en el ultimo intervalo, para que la prueba se vea en vivo."""
+    visto = 0
+    while time.time() < fin:
+        time.sleep(min(cada, max(0.1, fin - time.time())))
+        with candado:
+            nuevos = resultados[visto:]
+            visto = len(resultados)
+        ok = sorted(r[0] for r in nuevos if not r[2])
+        p50 = ok[len(ok) // 2] if ok else 0
+        with IMPRESION:
+            print(f"   [{time.time() - inicio:5.0f} s] {etiqueta}: {len(nuevos):6} consultas | "
+                  f"{sum(1 for r in nuevos if r[2]):4} errores | p50 {p50:6.0f} ms", flush=True)
 
 
 def nivel(n_usuarios, segundos, depto, sonda_depto=None):
     resultados, candado = [], threading.Lock()
-    fin = time.time() + segundos
+    inicio = time.time()
+    fin = inicio + segundos
     hilos = [threading.Thread(target=usuario, args=(fin, resultados, candado, depto)) for _ in range(n_usuarios)]
     sonda, candado_s = [], threading.Lock()
     if sonda_depto:
         hilos.append(threading.Thread(target=usuario, args=(fin, sonda, candado_s, sonda_depto)))
+    etiqueta = f"{n_usuarios} usuarios en VW {depto}" if n_usuarios > 1 else f"sonda en VW {depto}"
+    monitores = [threading.Thread(target=avance, args=(inicio, fin, resultados, candado, etiqueta), daemon=True)]
+    if sonda_depto:
+        monitores.append(threading.Thread(target=avance, args=(inicio, fin, sonda, candado_s, f"sonda en VW {sonda_depto}"),
+                                          daemon=True))
+    for m in monitores:
+        m.start()
     for h in hilos:
         h.start()
         time.sleep(0.02)
@@ -76,7 +102,7 @@ def nivel(n_usuarios, segundos, depto, sonda_depto=None):
     lat = sorted(r[0] for r in ok) or [0]
     registros = sum(r[1] for r in ok)
     lat_s = sorted(r[0] for r in sonda if not r[2]) or [0]
-    tipos = collections.Counter(r[2][:60] for r in resultados if r[2]).most_common(2)
+    tipos = collections.Counter(r[2][:150] for r in resultados if r[2]).most_common(2)
     return {"usuarios": n_usuarios, "consultas": len(resultados), "errores": len(resultados) - len(ok),
             "exitosas_s": round(len(ok) / segundos, 1), "tipos_error": " | ".join(f"{n}x {t}" for t, n in tipos),
             "p50_ms": statistics.median(lat), "p95_ms": lat[int(len(lat) * .95) - 1] if len(lat) > 1 else lat[0],

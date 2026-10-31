@@ -168,7 +168,7 @@ def main():
                 marcador = marcador_presente(bucket, numero)
                 if marcador:
                     raise RuntimeError(f"FALLO CONTROLADO en paso {numero}: existe {marcador}. "
-                                       f"Accion: eliminar el marcador (hdfs dfs -rm {marcador}); "
+                                       f"Accion: eliminar el marcador (python fase3/c02/c02_marcador.py borrar, o hdfs dfs -rm {marcador}); "
                                        f"el paso se reintenta solo y es idempotente.")
                 for sql in sentencias:
                     ejecutar(cur, sql)

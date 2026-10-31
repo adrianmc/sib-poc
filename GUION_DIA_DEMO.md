@@ -57,7 +57,7 @@ Cada paso del guion cita estos codigos [N#]. Nombres que dependen del tenant van
 
 # SESION 1: Plataforma y datos (90 min)
 
-**Para ejecutar la sesion 1 usar `GUION_SESION_1.md` (paso a paso completo, autocontenido).** Lo de abajo es el resumen.
+**Para ejecutar la sesion 1 usar `GUION_SESION_1.md` (paso a paso completo, validado en el dry-run del 30-oct).** Lo de abajo es el resumen y puede estar desactualizado en detalles.
 
 Preparacion especifica de la sesion 1 (despues de la comun). Los scripts de demo son repetibles por si mismos
 (C01-AE-03 empieza con DROP IF EXISTS de su tabla de sandbox; el CDC calcula sus ids): no hay limpieza previa.
@@ -103,7 +103,7 @@ Validado 29-oct: 7/7 superficies OK; Alpha Vantage accion_ibm 100, fx_usd_eur 10
 | 4 | N18 | `python fase3/c03/c03_ingesta_alphavantage.py --sin-clave --solo accion_ibm` | Falla con "la API respondio 'Error Message'... revisar clave" | AE-02 (errores) |
 | 5 | Pantalla | Diagramas de `fase3/c03/c03_apis_y_diagramas.md` (Entra, SharePoint, D365, IDMC, CipherTrust) | documental | AE-03..07 [DECL] |
 
-## C02 Pipelines [OK 22/23-oct; recuperacion PEND dry-run] ~15 min
+## C02 Pipelines [OK; AE-06 recuperacion y AE-09 aislamiento validados en el dry-run del 30-oct] ~15 min
 Bloc de notas:
 - crear marcador: `echo x > /tmp/m && hdfs dfs -put -f /tmp/m s3a://$B/sb/control/fallar_paso_3`
 - borrar marcador: `hdfs dfs -rm s3a://$B/sb/control/fallar_paso_3`
@@ -117,7 +117,7 @@ Bloc de notas:
 | 5 | N9 | APENAS aparezca el FALLIDO, pegar el comando "borrar marcador" | En el log: `Paso 3 intento 2: EXITOSO`; job en Success; sib-calidad corre sola | AE-06 (recuperacion) |
 | 6 | N8 user001 | `SELECT paso, intento, estado, mensaje FROM sb_consumption.pipeline_pasos ORDER BY inicio DESC LIMIT 6;` | Paso 3 FALLIDO y EXITOSO | AE-05, AE-06 |
 | 7 | Pantalla | Tabla de rendimiento fijo vs WAA (abajo) | 0 errores con WAA a 500 usuarios | PRE-06, AE-10 |
-| 8 | N9 x2 | Aislamiento en vivo (abajo) | Sonda en impala-sib-a cerca de su linea base | AE-09 [PEND] |
+| 8 | N9 x2 | Aislamiento en vivo (abajo) | Sonda en impala-sib-a cerca de su linea base | AE-09 [OK 30-oct] |
 Rendimiento 50 -> 500 usuarios (C02-PRE-06, AE-10), corrido el 29-oct; en la sesion se muestra la tabla y no se re-ejecuta (11 min):
 | Usuarios | Exitosas/s fijo | Exitosas/s WAA | Errores fijo | Errores WAA | p95 fijo | p95 WAA |
 |---|---|---|---|---|---|---|
@@ -126,11 +126,11 @@ Rendimiento 50 -> 500 usuarios (C02-PRE-06, AE-10), corrido el 29-oct; en la ses
 | 300 | 46 | 138 | 1.720 | 0 | 7.6 s | 2.5 s |
 | 500 | 71 | 118 | 2.595 | 0 | 8.2 s | 4.9 s |
 Fijo = impala-sib-a; WAA = impala-sib-waa (2 ejecutores en reposo, 4 en el pico). Detalle en sb_consumption.metricas_rendimiento.
-Aislamiento (C02-AE-09) EN VIVO [PEND]: carga en impala-sib-waa (sesion CAI 8 vCPU) y sonda en impala-sib-a desde OTRA sesion:
+Aislamiento (C02-AE-09) EN VIVO [OK 30-oct]: carga en impala-sib-waa (sesion CAI 8 vCPU) y sonda en impala-sib-a desde OTRA sesion:
   sesion 1: `python fase3/c02/c02_prueba_carga.py --prueba aislamiento --depto b --niveles 500 --segundos 300 --sin-registro`
   sesion 2 (30 s despues): `python fase3/c02/c02_prueba_carga.py --prueba sonda_carga --depto a --niveles 1 --segundos 240 --sin-registro`
-  Linea base de la sonda sin carga: p50 123 ms, p95 280 ms. RIESGO: con la sonda en el MISMO proceso que la carga, la sonda subio
-  a 3.3 s (probable cuello de botella del cliente: el rendimiento se estanca en ~135 consultas/s). No validado en dos sesiones.
+  Linea base sin carga: p50 123 ms. Validado 30-oct en dos sesiones: carga 34.176 consultas (114/s, 6 rechazos = 0,02 %);
+  sonda p50 123 ms / p95 173 ms. La degradacion del 29-oct era del cliente (sonda en el mismo proceso que la carga).
 Lecciones: con `--espera 60` no hubo tiempo de borrar el marcador (usar 180); la carpeta `sb/control` debe existir
 (`hdfs dfs -mkdir -p s3a://$B/sb/control`). Cierre: confirmar el marcador borrado.
 
@@ -279,7 +279,7 @@ va en `fase3/c06/modelo_riesgo.pkl` (el build excluye lo de .gitignore); `track_
 AI Registry requirio MLUser + Synchronize Users y, con RAZ, el machine user del registro en Ranger cm_s3 "all - bucket, path".
 Si RAG o MCP no quedan listos: se declaran parciales con la arquitectura.
 
-## C09 Administracion y FinOps [AE-01 capturas, AE-02 y AE-04 OK 29-oct]
+## C09 Administracion y FinOps [AE-01 capturas, AE-02 y AE-04 OK 29-oct; ABIERTO: WAA no escalo el 30-oct]
 | # | Accion | Se ve | Prueba |
 |---|---|---|---|
 | 1 | Costos por proyecto y ambiente (tags + vista de consumo) | granularidad real del ambiente | AE-01 |
