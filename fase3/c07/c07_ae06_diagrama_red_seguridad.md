@@ -7,18 +7,17 @@ flowchart TB
     CP[Cloudera Control Plane - SaaS]
     ENTRA[Entra ID - SAML/SCIM/MFA]
   end
-  subgraph AWS["Cuenta AWS PoC - region us-east-1"]
+  subgraph AWS["Cuenta AWS PoC - region us-east-2 (Ohio)"]
     subgraph VPC["VPC 10.10.0.0/16"]
       subgraph PUB["Subnets publicas x3 AZ"]
         NAT[NAT Gateways]
-        LB[Load balancers CDW/CDE/CML - allowlist IP de la SIB]
+        LB[Load balancers CDW y Cloudera AI - allowlist de IP]
       end
       subgraph PRIV["Subnets privadas /19 x3 AZ"]
         DL[Data Lake: Ranger, Atlas, HMS, Knox, IDBroker, FreeIPA]
-        DH[Data Hubs: Kafka + Connect, NiFi]
-        EKS[EKS: CDW VW depto A/B, CDE VC A/B, CML CPU/GPU, AI Inference]
-        RDS[(EC2 SQL Server 2022 - base origen sbcore)]
-        GW[EC2 Windows: Power BI Desktop + SQL Server]
+        DH[Data Hub sibrd-kafka: Kafka + Kafka Connect con Debezium]
+        EKS[EKS: CDW VW impala-sib-a e impala-sib-waa, Cloudera AI: sesiones, jobs, modelos, AI Registry]
+        GW[EC2 Windows 10.10.2.235: SQL Server 2022 base sbcore, Power BI Desktop, runner GitHub]
       end
     end
     S3[(S3 lakehouse SSE-KMS)]
@@ -30,10 +29,10 @@ flowchart TB
   ENTRA -->|SAML| CP
   CP <-->|CCMv2 saliente TLS| DL
   EKS --> S3
-  DL -->|IDBroker: credenciales temporales por usuario| S3
+  DL -->|RAZ: Ranger autoriza cada acceso a S3| S3
   DL -->|Ranger audit| AUD
   KMS --> S3
-  DH --> RDS
+  DH -->|Debezium lee CDC por 1433| GW
 ```
 
 Controles a narrar: identidad unica (Entra -> CDP -> FreeIPA -> Ranger), sin credenciales AWS de larga duracion para usuarios

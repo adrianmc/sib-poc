@@ -169,6 +169,8 @@ CA de FreeIPA en `config/datahub-ca.pem`. Detener con Ctrl+C al terminar.
 
 # SESION 2: Seguridad, gobierno y DevOps (90 min)
 
+**Para ejecutar la sesion 2 usar `GUION_SESION_2.md` (paso a paso completo).** Lo de abajo es el resumen.
+
 Preparacion especifica de la sesion 2 (despues de la comun; el Data Hub de Kafka no hace falta):
 | Paso | Como | Verificacion |
 |---|---|---|
