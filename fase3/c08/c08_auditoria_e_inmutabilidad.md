@@ -7,7 +7,7 @@ politica que decidio, IP cliente, fecha/hora. Mostrar un Allowed (consumo) y un 
 Complementos: **Audit > Admin** (cambios a politicas, p. ej. la politica creada por la solicitud de acceso),
 **Audit > Login Sessions**, auditoria del control plane (CDP Management Console > Audit) y AWS CloudTrail.
 
-## PRE-05: politica de retencion (declarar en la demo)
+## PRE-05: politica de retencion
 - Consulta en linea: los audits de Ranger se indexan en Solr del Data Lake; la retencion es configurable (TTL en dias).
 - Largo plazo: Ranger escribe los audits en el storage del ambiente (`<storage location base>/ranger/audit/`, ruta de datos);
   la retencion la gobierna S3 (Lifecycle) y la inmutabilidad el bucket WORM descrito abajo.
@@ -28,7 +28,7 @@ Preparacion (validada el 28-oct):
    governance, borrado de versiones, cambio de retencion y de configuracion de Object Lock a todo principal salvo el rol
    break-glass `sb-breakglass` (no se crea en la PoC: nadie puede, que es lo que se demuestra).
 4. Carga de los audits (CloudShell): `aws s3 sync s3://<bucket>/<prefijo-data>/ranger/audit/ s3://CAMBIAR_BUCKET_WORM/ranger/audit/`
-5. Continuo (declarar; opcional en la PoC): S3 Replication del prefijo `<prefijo-data>/ranger/audit/` hacia el bucket WORM.
+5. Continuo (opcional en la PoC): S3 Replication del prefijo `<prefijo-data>/ranger/audit/` hacia el bucket WORM.
    Requiere versionado en el bucket de CDP + lifecycle que expire versiones no actuales a los 7 dias.
 
 Demostracion (CloudShell):
@@ -41,6 +41,6 @@ Resultado esperado: los dos borrados de version dan **AccessDenied**, aun con un
 Matiz para explicar: `aws s3 rm` o "Delete" en la consola SIN version solo agrega un delete marker; la version original
 sigue intacta (list-object-versions la muestra). CloudTrail registra cada intento.
 Mensaje para la SIB: en COMPLIANCE ni la cuenta root puede borrar antes del vencimiento; GOVERNANCE + bucket policy se usa
-en la PoC para no dejar objetos imborrables en la cuenta de demo. Honestidad: en GOVERNANCE un administrador podria
+en la PoC para no dejar objetos imborrables en la cuenta de demo. Alcance: en GOVERNANCE un administrador podria
 quitar la bucket policy y luego borrar con bypass (queda en CloudTrail); por eso en produccion se usa COMPLIANCE. Limpieza post-PoC: quitar la bucket policy y esperar
 el vencimiento de 1 dia.

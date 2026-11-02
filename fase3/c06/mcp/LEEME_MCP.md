@@ -16,7 +16,7 @@ region esta peor?" El agente descubre las tablas con `get_schema`, escribe el SQ
 ambos servidores. Restringido: identificacion en hash y saldo denegado (tags PII/CONFIDENCIAL). Admin: datos completos.
 Evidencia en Ranger > Audit filtrando por usuario `sb_mcp01`.
 
-**Declarar con honestidad:** (a) el servidor usa una identidad tecnica fija, no la del usuario final; por eso se
+**Alcance:** (a) el servidor usa una identidad tecnica fija, no la del usuario final; por eso se
 demuestra con dos instancias. (b) `execute_query` tiene un filtro basico que solo acepta sentencias que inician con
 SELECT, SHOW, DESCRIBE o WITH; el propio codigo lo declara rudimentario. El control real es Ranger (sb_mcp01 solo tiene
 SELECT, rol de Ranger sb_mcp en la politica sb_02). (d) `get_schema` lista solo las tablas de `IMPALA_DATABASE` (sb_consumption); el agente puede

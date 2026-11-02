@@ -7,3 +7,6 @@ __pycache__/
 data/
 config/*.jks
 despliegues/
+
+# Documentos internos del equipo Cloudera (guiones, planes, validacion): no se publican
+interno/

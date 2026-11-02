@@ -8,7 +8,7 @@ Crear una vez: Cloudera AI > proyecto sib-poc > Applications > New Application
   Name: sib-accesos | Subdomain: sib-accesos | Script: fase3/c08/c08_portal_accesos.py
   Runtime Python 3.10 | 1 vCPU / 2 GB. Sin dependencias adicionales (solo biblioteca estandar + lib/sbpoc).
 
-Honestidad: el portal ejecuta las acciones con el usuario admin del config. El aprobador que se registra es el usuario
+Alcance: el portal ejecuta las acciones con el usuario admin del config. El aprobador que se registra es el usuario
 que Cloudera AI identifica en la sesion web si lo entrega en los encabezados; si no, el admin del config (se indica
 en pantalla). En produccion: SSO del IdP + segregacion solicitante/aprobador (ServiceNow, Power Automate o IDMC).
 """

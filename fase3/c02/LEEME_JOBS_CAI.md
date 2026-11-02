@@ -1,6 +1,6 @@
 # C02 y C05 con Jobs de Cloudera AI (mientras CDE no este disponible)
 
-Declarar a la SIB: "CDE con Airflow es el orquestador recomendado; por un defecto conocido del ambiente demo,
+Alcance: "CDE con Airflow es el orquestador recomendado; por un defecto conocido del ambiente demo,
 el flujo se muestra con Jobs de Cloudera AI. Mismo pipeline, mismos controles". CDE queda como 2DA PARTE.
 
 ## Preparacion (una vez, ~30 min)

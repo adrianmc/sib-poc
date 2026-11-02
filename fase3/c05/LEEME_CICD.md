@@ -3,7 +3,7 @@
 Sin acceso a Azure DevOps, la PoC usa **GitHub Actions**. Todo el trabajo real esta en scripts Python
 (`validar_esquema.py`, `validar_calidad.py`, `desplegar_cde.py`) que hablan con Cloudera por SQL y REST;
 el orquestador solo los llama. Por eso el mismo flujo corre en Azure Pipelines sin cambios de logica
-(`referencia_azure-pipelines.yml`). Declarar a la SIB: integracion con Azure DevOps = mismo patron, demostrado aqui con GitHub.
+(`referencia_azure-pipelines.yml`). Alcance: integracion con Azure DevOps = mismo patron, demostrado aqui con GitHub.
 
 ## Preparacion (1 vez, ~2 horas)
 1. Crear repositorio **publico** `sb-poc` en GitHub (plan Free). Motivo: en Free/Pro/Team los required reviewers
@@ -29,7 +29,7 @@ el orquestador solo los llama. Por eso el mismo flujo corre en Azure Pipelines s
 - `Invoke-WebRequest` lento: antes ejecutar `$ProgressPreference = 'SilentlyContinue'` (o usar `curl.exe -L -o`).
 - Python 3.11 o 3.12 "Install for all users" (3.15 es muy nueva: faltan wheels).
 - Una sola cuenta GitHub: ruleset con Required approvals = 0 y bypass para Repository admin; en sb-prod reviewer = uno mismo
-  y SIN "Prevent self-review". Declarar: en operacion real el aprobador es otra persona.
+  y SIN "Prevent self-review". Alcance: en operacion real el aprobador es otra persona.
 - Secret CONFIG_YAML = config/config.cicd.ejemplo.yaml lleno (minimo), no el config.yaml completo. api_key vence en 1 dia.
 - El runner toma el PATH de `C:\actions-runner\.path` (UNA linea). Si `python` no se reconoce: escribirlo con
   `Set-Content C:\actions-runner\.path $nuevo -NoNewline` (Python primero) y `Restart-Service actions.runner.*`.
@@ -54,7 +54,7 @@ Prerrequisito: la Application `sib-despachador` en Running antes de abrir el PR.
 - [x] Rollback de prueba a `v1.0.0` termina en verde (27-oct, run #16)
 
 Nota sobre segregacion: dev/test/prod despliegan jobs distintos (`sb-pipeline-batch-<amb>`) pero hoy escriben las mismas
-tablas. Si la SIB pide segregacion de datos (Pregunta 3), se parametriza la base destino por ambiente.
+tablas. Si se requiere segregacion de datos, se parametriza la base destino por ambiente.
 
 ## Demo (mapeo a la plantilla)
 | Item | Accion |

@@ -7,7 +7,7 @@ directamente desde S3, sin exportacion ni conversion. Solo necesita acceso de le
 2. En la laptop (fuera de la plataforma): pip install duckdb
 3. python c01_ae06_lectura_externa_duckdb.py --metadata s3://CAMBIAR_BUCKET/.../metadata/xxxxx.metadata.json
 Credenciales: perfil AWS local con permiso s3:GetObject/ListBucket sobre el bucket (cadena de credenciales estandar).
-Declarar: este camino lee archivos, no pasa por Ranger; por eso se usa la tabla ya enmascarada (sb_share).
+Alcance: este camino lee archivos, no pasa por Ranger; por eso se usa la tabla ya enmascarada (sb_share).
 """
 import argparse
 

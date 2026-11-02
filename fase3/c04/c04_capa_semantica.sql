@@ -1,11 +1,11 @@
 -- =====================================================================
 -- C04: capa semantica gobernada basada en vistas (Hue -> Impala, sb_admin01)
--- Honestidad: Cloudera no tiene capa de metricas nativa. La "definicion oficial" es una vista gobernada,
+-- Alcance: Cloudera no tiene capa de metricas nativa. La "definicion oficial" es una vista gobernada,
 -- documentada con comentarios y glosario Atlas, protegida con Ranger y reutilizable por cualquier consumidor.
 -- =====================================================================
 
 -- C04-PRE-06: vista con nombres de negocio y descripcion por campo (Power BI ve los nombres de columna;
--- las descripciones NO se heredan en Power BI - brecha declarada en C04-AE-04)
+-- las descripciones NO se heredan en Power BI; ver C04-AE-04)
 CREATE VIEW IF NOT EXISTS sb_consumption.v_cartera_crediticia (
   Identificacion_Deudor COMMENT 'Documento del deudor (PII, enmascarado segun rol)',
   Producto              COMMENT 'Nombre del producto crediticio',

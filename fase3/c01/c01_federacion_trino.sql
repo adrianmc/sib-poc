@@ -2,7 +2,7 @@
 -- PG-10 / C02-AE-07 / C03-PRE-01: consulta federada con Trino Virtual Warehouse (CDW, ultima version).
 -- La base SQL Server origen del cliente (EC2) se consulta EN VIVO junto con el lakehouse Iceberg, sin copiar datos.
 -- Herramienta: Hue (Data Explorer) -> editor Trino del VW trino-sb. Usuarios: user006 (analista2) y user001 (admin).
--- DECLARAR: el conector SQL Server de Trino es COMUNITARIO (Cloudera certifica Oracle, no SQL Server).
+-- Alcance: el conector SQL Server de Trino es COMUNITARIO (Cloudera certifica Oracle, no SQL Server).
 -- Prerrequisitos (Fase 1):
 --   * Trino VW "trino-sb" (auto-suspend desactivado, minimo 1 worker: problema conocido de metadata en Hue).
 --   * Catalogo "sqlserver_core": connector.name=sqlserver,

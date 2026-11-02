@@ -9,7 +9,7 @@ cubren con el escenario documental (c03_apis_y_diagramas.md), que el criterio de
 
 Ejecutar en una sesion CML (Python). Requiere App Registration en Entra con permisos:
   Graph: Sites.Read.All (application) | Dataverse: usuario de aplicacion creado en el ambiente de D365.
-Honestidad: no son conectores nativos de Cloudera; es integracion via API estandar (workaround con desarrollo minimo).
+Alcance: no son conectores nativos de Cloudera; es integracion via API estandar (desarrollo minimo).
 En NiFi el mismo patron es InvokeHTTP + StandardOauth2AccessTokenProvider + PutIceberg.
 """
 import argparse

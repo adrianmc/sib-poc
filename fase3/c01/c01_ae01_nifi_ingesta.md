@@ -51,5 +51,5 @@ STORED AS ICEBERG TBLPROPERTIES ('format-version'='2');
    (`INSERT INTO dbo.creditos VALUES (900001, ...)`), ejecutar de nuevo: entran solo esos 5
    (`SELECT COUNT(*)` antes/despues y `DESCRIBE HISTORY sb_raw.creditos_nifi`). Linaje NiFi -> Atlas si el reporting task esta activo (V).
 
-Declarar: QueryDatabaseTable es incremental por columna de valor maximo; **no captura UPDATE ni DELETE**.
+Alcance: QueryDatabaseTable es incremental por columna de valor maximo; **no captura UPDATE ni DELETE**.
 Eso lo cubre el CDC con Debezium (C01-AE-05). Son patrones complementarios.

@@ -1,7 +1,7 @@
 """
 C06-PRE-03 / AE-03 / AE-04: registra la corrida del modelo R en el MISMO experimento MLflow que el modelo Python
 (metricas, parametros y artefacto .rds), para comparar ambos en la UI de Experiments.
-Honestidad: el Model Registry versiona el modelo Python (sabor sklearn). El modelo R queda trazado como corrida
+Alcance: el Model Registry versiona el modelo Python (sabor sklearn). El modelo R queda trazado como corrida
 del experimento con su artefacto; registrarlo en el Registry requeriria empaquetarlo con un sabor MLflow para R.
   python fase3/c06/c06_ae03_registrar_r.py
 """

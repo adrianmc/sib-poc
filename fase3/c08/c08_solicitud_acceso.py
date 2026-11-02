@@ -1,5 +1,5 @@
 """
-C08-AE-08 (workaround; no existe flujo nativo de solicitud de acceso en el catalogo de Cloudera):
+C08-AE-08 (complemento; no existe flujo nativo de solicitud de acceso en el catalogo de Cloudera):
 flujo minimo solicitar -> aprobar -> provisionar en Ranger -> validar -> revocar, con trazabilidad en
 sb_gov.solicitudes_acceso. En produccion el mismo patron se implementa con ServiceNow/Power Automate o
 IDMC Data Marketplace + Ranger REST API.

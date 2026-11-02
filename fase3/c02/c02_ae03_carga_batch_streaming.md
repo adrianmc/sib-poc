@@ -17,5 +17,5 @@ activos subiendo y bajando) + `sb_consumption.metricas_rendimiento`. Nativo.
 1. Base: productor a 20 eventos/s y medicion `--medir --tasa-fondo 20`.
 2. Carga: segundo productor a 500 eventos/s (`--eventos 150000 --por-segundo 500`, varias instancias si hace falta) y `--medir --tasa-fondo 500`.
 3. Evidencia: `sb_consumption.latencia_streaming` (antes/despues) y ejecutores del job streaming.
-Declarar con precision: Spark (consumidor) escala ejecutores solo; **los brokers de Kafka del Data Hub no autoescalan**
-(se dimensionan o escalan manualmente). Resultado esperado: workaround/parcial para streaming.
+Alcance: Spark (consumidor) escala ejecutores solo; **los brokers de Kafka del Data Hub no autoescalan**
+(se dimensionan o escalan manualmente). Resultado esperado: parcial para streaming.

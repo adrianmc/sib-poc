@@ -1,82 +1,38 @@
-# SIB PoC - Kit de Fase 2 (datos y seguridad base) y Fase 3 (casos C01-C09)
+# Prueba de concepto Cloudera para la Superintendencia de Bancos
 
-**Orden de lectura**
-1. `PLAN_31_OCTUBRE.md` (seccion Calendario): que toca hoy y quien lo hace.
-2. `RUNBOOK_IMPLEMENTACION.md`: como hacerlo, paso a paso, empezando por E0.1. Es el unico que se sigue al ejecutar.
-3. Dia de la demo: `GUION_DIA_DEMO.md` (operativo, se completa por bloque validado).
-4. Solo de consulta: `VALIDACION_ENTREGABLES.md` (estado y brechas por item) y `GUION_DEMO.md` (para el dry-run del 29).
-El resto de archivos son los scripts que el runbook manda ejecutar.
+Codigo y configuracion de la prueba de concepto sobre Cloudera on cloud (AWS), runtime 7.3.2.
+Todos los datos son **sinteticos**: el repositorio no contiene datos reales ni credenciales.
 
-Kit para la Plantilla de Escenarios de Demostracion de la Superintendencia de Bancos sobre Cloudera on cloud (AWS).
-Todos los datos son **sinteticos**. Nada de este repositorio contiene datos reales.
+## Arquitectura del ambiente
+| Capa | Componente |
+|---|---|
+| Origen | SQL Server 2022 (base `sbcore`) con CDC nativo, en una EC2 de la VPC del ambiente |
+| Ingesta | Data Hub Streams Messaging: Kafka, Kafka Connect con Debezium y Streams Messaging Manager |
+| Lakehouse | Apache Iceberg v2 en S3, capas `sb_raw`, `sb_curated` y `sb_consumption` |
+| SQL y BI | Cloudera Data Warehouse: Virtual Warehouses Impala `impala-sib-a` (recursos fijos) e `impala-sib-waa` (autoescalado por carga), Hue (Cloudera Data Explorer) y Power BI Desktop |
+| Procesamiento, IA y operacion | Cloudera AI: sesiones, Jobs (pipeline y calidad), Applications (`sib-despachador`, `sib-accesos`), MLflow, AI Registry y endpoints de modelos |
+| Seguridad y gobierno | SDX: Ranger (roles, atributos, enmascaramiento, filtros por fila, auditoria), Atlas (clasificacion y linaje), RAZ para S3 |
+| CI/CD | GitHub Actions con runner en la VPC; despliegue por cola auditable hacia Cloudera AI |
 
-## 1. Lo que necesito de las Fases 0 y 1 (checklist)
-- [ ] Buckets de datos, logs y backup del ambiente
-- [ ] Ambiente CDP con runtime **7.3.2** (incluye Iceberg REST Catalog y Data Sharing en Data Catalog) y tags `proyecto`, `ambiente`, `centro_costo`
-- [ ] Keycloak (IdP SAML del ambiente demo) con usuarios y grupos de `fase2/10_usuarios_y_grupos.md`; sincronizacion de grupos al login activa en CDP
-- [ ] Data Hub **Streams Messaging** (Kafka + Kafka Connect/Debezium + SMM) y Data Hub **Flow Management** (NiFi)
-- [ ] CDW (ultima version): Database Catalog, VW Impala `impala-depto-a` y `impala-depto-b` con autoscaling (ver seccion 6), **VW Hive** (tabla JSON), Hue
-- [ ] CDW: **Trino VW `trino-sb`** (auto-suspend OFF, minimo 1 worker), secreto registrado en el ambiente y catalogo SQL Server `sqlserver_core` (conector comunitario de Trino, declarado) asociado al VW
-- [ ] NiFi (Flow Management): `mssql-jdbc.jar` copiado a todos los nodos; bucket con prefijo `sb/entrada/` para el buzon
-- [ ] CDE: VC `vc-depto-a` y `vc-depto-b` con Airflow; recurso con `datahub-truststore.jks`
-- [ ] CML workspace con grupo CPU y grupo **GPU (min 0)**; AI Inference Service con un LLM open source y un modelo de embeddings
-- [ ] EC2 Windows Server en la VPC del ambiente con SQL Server 2022 Developer (base origen `sbcore`, Agent activo, 1433 abierto al CIDR de la VPC) y Power BI Desktop
-- [ ] Cola SQS `sb-bronce-eventos` + notificacion S3 ObjectCreated del prefijo `sb/landing/transacciones/`
-- [ ] EC2 Windows con Power BI Desktop, on-premises data gateway, SQL Developer/DBeaver y SSMS (scripts 03 y 04)
-- [ ] Security group de RDS: 1521 y 1433 abiertos desde las subnets privadas del ambiente (CDE y Cloudera AI)
-- [ ] Cloudera AI: perfil de recursos de 8 vCPU / 16 GB (prueba de 500 usuarios); recurso CDE `sb-drivers` con `mssql-jdbc.jar`
-- [ ] GitHub: repo publico, secret CONFIG_YAML, environments sb-dev/test/prod (aprobador en prod), 2 usuarios y runner self-hosted en el EC2 Windows (`fase3/c05/LEEME_CICD.md`)
-- [ ] Hue: SQL AI Assistant habilitado y apuntando a un modelo (C02-AE-12, PG-16)
-- [ ] Cloudera AI: SMTP configurado en el workspace (notificaciones de Jobs para la alerta de drift, C06-AE-06)
-- [ ] CDE: envio de linaje a Atlas activo (C08-AE-02); CDW: acceso kubeconfig al cluster (C09-AE-05)
-- [ ] Cuota de instancias GPU (G and VT) aprobada en la region; runtime de Cloudera AI con CUDA
-- [ ] Bucket de logs con versionado + bucket WORM con Object Lock y replicacion del prefijo `ranger/audit/` (ver c08)
+## Estructura
+| Carpeta | Contenido |
+|---|---|
+| `config/` | `config.ejemplo.yaml`: plantilla de configuracion |
+| `lib/` | `sbpoc.py`: utilidades comunes (configuracion, Impala, Ranger y Atlas por Knox, API de Cloudera AI) |
+| `fase2/` | Generacion de datos, base origen SQL Server, DDL del lakehouse, tags de Atlas y politicas de Ranger |
+| `fase3/c01` | Lakehouse: misma tabla para varios motores, operaciones transaccionales, evolucion de esquema, metadatos y CDC |
+| `fase3/c02` | Pipelines: pipeline orquestado con fallo controlado y recuperacion, calidad, prueba de carga |
+| `fase3/c03` | Integraciones: APIs de la plataforma, API externa autenticada, escenarios de integracion |
+| `fase3/c04` | Capa semantica, glosario en Atlas y guia de conexion de Power BI |
+| `fase3/c05` | CI/CD: validacion de esquema y calidad, despliegue versionado, despachador y versionado de datos |
+| `fase3/c06` | Ciencia de datos e IA: entrenamiento trazable, registro, endpoint, drift, RAG y MCP |
+| `fase3/c07` | Seguridad: pruebas de acceso por rol y atributo, diagrama de red |
+| `fase3/c08` | Gobierno: linaje de punta a punta, impacto, auditoria inmutable, acceso externo y solicitudes de acceso |
+| `fase3/c09` | Administracion y FinOps: costos, picos, diagnostico y continuidad |
+| `.github/workflows/` | Workflow `sb-cicd` (PR, TEST, PROD con aprobacion y rollback) |
 
-## 2. Configuracion
-1. Copiar `config/config.ejemplo.yaml` a `config/config.yaml` y completar todos los `CAMBIAR_*`. `config.yaml` no se versiona (`.gitignore`); en CML crearlo dentro del proyecto.
-2. En SQL y Markdown, reemplazar `CAMBIAR_BUCKET` y demas marcadores con buscar y reemplazar de VS Code.
-3. `pip install -r requirements.txt` en el proyecto de Cloudera AI (todos los scripts Python cliente corren ahi). En CML: crear el proyecto desde el repositorio Git;
-   `lib/sbpoc.py` asume la raiz del proyecto en `/home/cdsw`.
-
-## 3. Orden de ejecucion
-**Fase 2** (ver pie de `fase2/10_usuarios_y_grupos.md`): 01 generar datos (Cloudera AI) -> 03/04 RDS -> 06 subir S3 ->
-02 y 05b en CDE -> 07 DDL (Hue) -> 10 usuarios -> 08 tags Atlas -> 09 politicas Ranger.
-
-**Fase 3** (orden de construccion por dependencias):
-1. C01 CDC (conectores Debezium + job `c01_ae05_cdc_spark.py`) -> puebla `sb_curated.clientes` y `cuentas`
-2. C02 pipeline batch + DAG + streaming + trigger + prueba de carga
-3. C07 pruebas de acceso (valida las politicas de Fase 2)
-4. C04 capa semantica + glosario + Power BI
-5. C06 entrenamiento, endpoint, drift, RAG, MCP
-6. C05 CI/CD con GitHub Actions (usa el pipeline de C02)
-7. C08 linaje BI, impacto, acceso externo, solicitudes
-8. C03 ingesta API + diagramas; C09 runbooks
-9. Dry-run completo con `GUION_DEMO.md`
-
-## 4. Decisiones de arquitectura (por que cada servicio)
-
-**Identidad: Keycloak.** Es el IdP de los ambientes demo de Cloudera. El patron (SAML con grupos en la asercion) es el
-mismo que con Entra ID, que se presenta como escenario en C03-AE-03.
-
-**Impala VW con autoscaling (WAA).** No es un tipo distinto de VW: es el modo de autoscaling del Impala VW normal.
-Se usa porque la plantilla pide elasticidad (C02-PRE-04, C02-AE-03, C09-AE-02). Para la prueba de "recursos fijos"
-(C02-PRE-06/AE-10) se fija minimo = maximo de ejecutores en el mismo VW, y luego se libera el maximo. Si la version
-desplegada ofrece el autoscaling clasico en lugar de WAA, tambien cumple; WAA solo escala de forma mas fina por consulta.
-
-**NiFi en Data Hub Flow Management (no Cloudera DataFlow).** Por simplicidad y costo: un cluster fijo pequeno, sin
-habilitar otro data service. DataFlow sumaria despliegues por flujo con autoscaling y KPIs (reforzaria C02-AE-03 para
-ingesta), pero exige habilitar el servicio y su consumo. Si el ambiente demo ya lo tiene, conviene usarlo.
-
-**Base origen: SQL Server 2022 en EC2 (sin Oracle, decision 23 oct).** Una sola EC2 Windows Server con SQL Server
-Developer (CDC nativo con Agent) y Power BI Desktop. Origen de CDC (Debezium SQL Server), NiFi flujo B y Trino federado.
-Oracle se declara en PG-10 (JDBC estandar, conector Trino certificado), no se demuestra.
-
-**CI/CD: GitHub Actions** (sin acceso a Azure DevOps). Mismos scripts; `referencia_azure-pipelines.yml` muestra el equivalente.
-
-**CDE: donde es necesario y donde solo se reutiliza**
-| Uso | Por que CDE | Alternativa sin CDE |
-|---|---|---|
-| C02 pipeline batch (`c02_pipeline_batch.py`) + DAG Airflow | **Necesario**: Spark administrado con autoscaling de ejecutores/nodos, consola de ejecuciones con estado y logs (AE-05), reintentos de Airflow (AE-06), API para disparar (AE-04) y aislamiento por Virtual Cluster (PG-17) | Spark en Cloudera AI cubre el computo, pero no la orquestacion ni la consola de jobs que piden AE-01/05/06 |
-| C05 destino de despliegue (`desplegar_cde.py`) | **Necesario**: el artefacto desplegado y versionado es el job de C02 | - |
-| C01 CDC (`c01_ae05_cdc_spark.py`) y streaming (`c02_streaming_consumidor.py`) | Reutiliza: Spark Structured Streaming de larga duracion con monitoreo | NiFi (ConsumeKafka -> PutIceberg) o SQL Stream Builder (Flink); el MERGE de CDC es mas simple en Spark |
-| Fase 2 masivo (`02`) y carga RDS (`05b`) | Reutiliza: ya existe el VC; carga paralela de 30M y 3.5M filas | Spark en una sesion de Cloudera AI, o NiFi (PutDatabaseRecord) para RDS |
+## Configuracion
+1. Copiar `config/config.ejemplo.yaml` a `config/config.yaml` y completar los valores `CAMBIAR_*`.
+   `config.yaml` y los certificados no se versionan (`.gitignore`); el CI/CD recibe su configuracion por un secret.
+2. En el proyecto de Cloudera AI: `pip install -r requirements.txt`. Los scripts asumen la raiz del proyecto en `/home/cdsw`.
+3. Cada script indica en su encabezado que demuestra, como se ejecuta y su alcance.

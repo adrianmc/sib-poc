@@ -6,8 +6,8 @@
   (granularidad real del tenant de la PoC: Data Lake, Data Hubs sibrd-kafka, VW impala-sib-a, workspace de Cloudera AI).
   Filtro de fechas: el periodo de la PoC. Captura: consumo por servicio y por recurso.
 - **AWS Cost Explorer**: Group by Tag `proyecto` y `ambiente` (activar los tags como cost allocation tags en Billing, 24 h antes).
-  Si la cuenta AWS de demo no da acceso a Billing/Cost Explorer: declarar y mostrar los tags en las instancias EC2 del ambiente.
-- Chargeback por usuario/consulta: Cloudera Observability (SKU adicional). Declararlo.
+  Si la cuenta AWS de demo no da acceso a Billing/Cost Explorer: mostrar los tags en las instancias EC2 del ambiente.
+- Chargeback por usuario/consulta: Cloudera Observability (SKU adicional).
 
 ## C09-PRE-02 / AE-02: escenario de pico y control de sobreconsumo
 - Pico medido (una sola corrida cubre tambien C02-PRE-06/AE-10): escalones de 50 en 50 hasta 500 usuarios sobre impala-sib-a,
@@ -76,5 +76,5 @@ cdp datalake backup-datalake --datalake-name CAMBIAR_DATALAKE --backup-location 
 cdp datalake backup-datalake-status --datalake-name CAMBIAR_DATALAKE
 cdp datalake restore-datalake --datalake-name CAMBIAR_DATALAKE_DR --backup-id CAMBIAR_BACKUP_ID
 ```
-Declarar: no hay activo-activo multi-region administrado. RPO = frecuencia de backup + retraso de replicacion S3 (minutos a horas);
+Alcance: no hay activo-activo multi-region administrado. RPO = frecuencia de backup + retraso de replicacion S3 (minutos a horas);
 RTO = horas (crear ambiente y servicios con IaC/CLI + restore). Trafico: DNS (Route 53) apuntando a los endpoints del ambiente DR.

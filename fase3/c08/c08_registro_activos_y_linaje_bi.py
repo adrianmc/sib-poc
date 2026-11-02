@@ -4,7 +4,7 @@ C08-PRE-01/02, AE-01, AE-02, AE-06: completa en Atlas lo que no se captura autom
   - Tramo de ORIGEN del linaje: tablas SQL Server (base sbcore) -> proceso CDC -> tablas curadas.
   - Tramo de CONSUMO del linaje: tablas/vistas -> refresh -> dashboard Power BI; documentos -> indexacion -> agente RAG.
 El tramo intermedio (Impala: raw -> curada -> consumible, pipeline sib-pipeline) lo captura Atlas automaticamente.
-Honestidad: los tramos de origen y consumo son registro por API (workaround, desarrollo minimo). El linaje
+Alcance: los tramos de origen y consumo son registro por API (desarrollo minimo). El linaje
 automatico hasta BI y desde las bases origen requiere Octopai o el escaner de IDMC.
   python fase3/c08/c08_registro_activos_y_linaje_bi.py
 """

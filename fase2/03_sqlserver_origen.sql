@@ -51,7 +51,7 @@ CREATE TABLE dbo.creditos (
   default_12m            TINYINT
 );
 GO
--- Usuarios: la app carga datos; Debezium lee tablas y el esquema cdc (db_owner simplifica la PoC: declararlo)
+-- Usuarios: la app carga datos; Debezium lee tablas y el esquema cdc (db_owner simplifica la PoC)
 CREATE USER sbcore_app FOR LOGIN sbcore_app;
 ALTER ROLE db_datareader ADD MEMBER sbcore_app;
 ALTER ROLE db_datawriter ADD MEMBER sbcore_app;

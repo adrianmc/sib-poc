@@ -48,7 +48,7 @@ flowchart LR
   IDMC_CDGC[IDMC Data Governance & Catalog] -->|escaner de metadata| HMS[Metastore / Atlas]
   CDGC_MP[IDMC Data Marketplace] -.->|solicitud de acceso aprobada| RAPI[Ranger REST API]
 ```
-Declarar: la integracion se configura del lado de Informatica (conectores y escaneres de IDMC); Cloudera expone JDBC, HMS y APIs de Atlas/Ranger. Validar version de escaner con Informatica.
+Alcance: la integracion se configura del lado de Informatica (conectores y escaneres de IDMC); Cloudera expone JDBC, HMS y APIs de Atlas/Ranger. Validar version de escaner con Informatica.
 
 ## C03-AE-07: Thales CipherTrust Manager (integracion en la capa de llaves de AWS)
 ```mermaid
@@ -58,4 +58,4 @@ flowchart LR
   KMS -->|cifrado EBS| EBS[(Volumenes EKS/EC2)]
   CDP[CDP ambiente sb-poc] -->|usa CMK configurada al crear el ambiente| KMS
 ```
-Declarar: CDP consume la CMK de AWS KMS; CipherTrust gestiona el ciclo de vida de esa llave. No es una integracion certificada directamente por Cloudera; es una arquitectura de responsabilidad en la capa de nube. Tokenizacion con preservacion de formato requeriria el producto de tokenizacion de Thales o Protegrity (UDFs).
+Alcance: CDP consume la CMK de AWS KMS; CipherTrust gestiona el ciclo de vida de esa llave. No es una integracion certificada directamente por Cloudera; es una arquitectura de responsabilidad en la capa de nube. Tokenizacion con preservacion de formato requeriria el producto de tokenizacion de Thales o Protegrity (UDFs).
