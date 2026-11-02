@@ -53,19 +53,7 @@ Todos los datos son **sinteticos**. Nada de este repositorio contiene datos real
 8. C03 ingesta API + diagramas; C09 runbooks
 9. Dry-run completo con `GUION_DEMO.md`
 
-## 4. Honestidad tecnica incorporada en el kit
-Cada script declara en su encabezado si la capacidad es nativa, workaround o integracion. Brechas no nativas:
-metadata semantica heredada por Power BI (C04-AE-04), co-edicion en tiempo real de notebooks (C06-AE-02) y
-flujo de solicitud de acceso en catalogo (C08-AE-08). Matices: herencia de identidad en Power BI Service (C04-AE-03),
-masking en Spark directo sobre S3 (C07-AE-03), reintento (no continuacion) de consultas Impala ante perdida de nodo (C09-AE-05).
-
-## 5. Lo que NO fue probado contra un ambiente real
-El codigo se escribio contra las APIs y sintaxis documentadas, pero solo el generador de datos se ejecuto aqui.
-Puntos con mayor probabilidad de ajuste en el primer intento: nombres de servicio Ranger (`cm_hive`/`cm_tag`),
-propiedades Debezium segun version (1.x vs 2.x), paquete Kafka/Avro de Spark en CDE, URIs del REST Catalog,
-y conexion HTTP/TLS del servidor MCP. Reporta el error exacto y se corrige.
-
-## 6. Decisiones de arquitectura (por que cada servicio)
+## 4. Decisiones de arquitectura (por que cada servicio)
 
 **Identidad: Keycloak.** Es el IdP de los ambientes demo de Cloudera. El patron (SAML con grupos en la asercion) es el
 mismo que con Entra ID, que se presenta como escenario en C03-AE-03.
