@@ -30,7 +30,7 @@ DDL = (f"CREATE TABLE IF NOT EXISTS {TABLA} (id STRING, ambiente STRING, version
        "STORED AS ICEBERG TBLPROPERTIES ('format-version'='2')")
 INTERVALO = 15
 ultimas = []          # filas para la pagina de estado
-estado_app = {"inicio": time.strftime("%Y-%m-%d %H:%M:%S"), "revision": "", "error": ""}
+estado_app = {"inicio": time.strftime("%Y-%m-%d %H:%M:%S"), "revision": "", "error": "", "ultima_ok": 0.0}
 
 
 def sql(consulta, devolver=False):
@@ -67,10 +67,21 @@ def atender(sid, ambiente, version, autor):
 
 
 def ciclo():
-    sql(DDL)
+    """Bucle del despachador. Todo va dentro del try: si Impala no responde al arrancar (VW suspendido o reanudandose),
+    reintenta cada INTERVALO en vez de morir en silencio (leccion 2-nov: el hilo murio en el CREATE TABLE inicial y la
+    pagina seguia viva pero sin procesar la cola)."""
     print(f"Despachador activo: revisa {TABLA} cada {INTERVALO} s", flush=True)
+    tabla_lista = False
     while True:
         try:
+            if not tabla_lista:
+                sql(DDL)
+                tabla_lista = True
+            # Solicitudes viejas: el runner ya abandono la espera (timeout de 30 min); no se ejecutan tarde
+            viejas = "estado = 'PENDIENTE' AND solicitado < now() - INTERVAL 35 MINUTES"
+            if sql(f"SELECT COUNT(*) FROM {TABLA} WHERE {viejas}", devolver=True)[0][0]:
+                sql(f"UPDATE {TABLA} SET estado = 'VENCIDA', mensaje = 'el runner dejo de esperar (mas de 35 min)', "
+                    f"actualizado = now() WHERE {viejas}")
             pendientes = sql(f"SELECT id, ambiente, version, autor FROM {TABLA} WHERE estado = 'PENDIENTE' "
                              "ORDER BY solicitado", devolver=True)
             for sid, ambiente, version, autor in pendientes:
@@ -83,6 +94,7 @@ def ciclo():
                              f"coalesce(mensaje,''), cast(solicitado AS STRING), cast(actualizado AS STRING) "
                              f"FROM {TABLA} ORDER BY solicitado DESC LIMIT 20", devolver=True)
             estado_app["revision"] = time.strftime("%Y-%m-%d %H:%M:%S")
+            estado_app["ultima_ok"] = time.time()
             estado_app["error"] = ""
         except Exception as e:
             traceback.print_exc()
@@ -117,7 +129,7 @@ vertical-align:middle}th{font-size:12px;color:var(--suave);font-weight:600;borde
 .aviso{padding:10px 14px;border-radius:6px;margin-bottom:16px;border:1px solid}
 .ok{border-color:var(--verde);color:var(--verde)}.err{border-color:var(--rojo);color:var(--rojo)}
 .est{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:600;border:1px solid}
-.PENDIENTE{color:var(--ambar)}.APROBADA{color:var(--verde)}.RECHAZADA,.REVOCADA{color:var(--gris)}
+.PENDIENTE{color:var(--ambar)}.APROBADA{color:var(--verde)}.RECHAZADA,.REVOCADA,.VENCIDA{color:var(--gris)}
 .vacio{color:var(--suave);padding:6px 0}.pie{color:var(--suave);font-size:12px}
 .acciones{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
 @media (max-width:700px){.ocultable{display:none}}
@@ -155,6 +167,9 @@ def pagina():
              "<th>Actualizado (UTC)</th></tr>" + "".join(map(fila, filas)) + "</table>"
              ) if filas else "<div class='vacio'>Sin solicitudes de despliegue.</div>"
     aviso = f"<div class='aviso err'>Error al leer la cola: {e(estado_app['error'])}</div>" if estado_app["error"] else ""
+    if time.time() - estado_app["ultima_ok"] > 3 * INTERVALO:
+        aviso += ("<div class='aviso err'>El despachador no ha revisado la cola en los ultimos "
+                  f"{3 * INTERVALO} s. Revisar que el VW de Impala este encendido; si persiste, Restart de la Application.</div>")
     return f"""<!doctype html><html lang="es"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="refresh" content="10">
 <title>Despachador de despliegues</title><style>{ESTILO}</style></head><body>
