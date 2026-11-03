@@ -14,6 +14,7 @@ Crear una vez: Cloudera AI > proyecto sib-poc > Applications > New Application
   Runtime Python 3.10 | 1 vCPU / 2 GB. Abrir la URL de la Application muestra la cola (util en la demo).
 """
 import html
+import re
 import os
 import sys
 import threading
@@ -43,22 +44,38 @@ def sql(consulta, devolver=False):
         con.close()
 
 
+REGISTRO = "/home/cdsw/logs/despachador.log"   # el log de la Application no muestra lo que imprime el hilo
+
+
+def log(texto):
+    linea = f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {texto}"
+    print(linea, flush=True)
+    try:
+        os.makedirs(os.path.dirname(REGISTRO), exist_ok=True)
+        with open(REGISTRO, "a") as f:
+            f.write(linea + "\n")
+    except OSError:
+        pass
+
+
 def marcar(sid, estado, run_id="", mensaje=""):
     m = str(mensaje).replace("'", "")[:300]
     sql(f"UPDATE {TABLA} SET estado = '{estado}', run_id = '{run_id}', mensaje = '{m}', actualizado = now() "
         f"WHERE id = '{sid}'")
-    print(f"[{time.strftime('%H:%M:%S')}] {sid}: {estado} {run_id} {m}", flush=True)
+    log(f"{sid}: {estado} {run_id} {m}")
 
 
 def atender(sid, ambiente, version, autor):
     job = f"sib-pipeline-{ambiente}"
     marcar(sid, "EN_EJECUCION", mensaje=f"apuntando {job} a {version}")
     s, api, pid = cai_api()
+    log(f"{sid}: PATCH de {job}")
     r = s.patch(f"{api}/projects/{pid}/jobs/{cai_job_id(job)}",
                 json={"arguments": f"--ref {version} --ambiente {ambiente}"}, timeout=60)
     r.raise_for_status()
     sql(f"INSERT INTO sb_gov.despliegues VALUES ('sib-pipeline', '{ambiente}', '{version}', "
         f"'despliegues/{ambiente}', '{autor}', now())")
+    log(f"{sid}: lanzando {job}")
     run_id, estado = cai_ejecutar_job(job, esperar=True)
     if estado == "ENGINE_SUCCEEDED":
         marcar(sid, "EXITOSO", run_id, f"{job} en version {version}")
@@ -83,7 +100,12 @@ def ciclo():
         try:
             if not tabla_lista:
                 sql(DDL)
+                # Solicitudes que quedaron EN_EJECUCION por un reinicio de la Application: nadie las va a terminar
+                huerfanas = sql(f"SELECT id FROM {TABLA} WHERE estado = 'EN_EJECUCION'", devolver=True)
+                for (sid,) in huerfanas:
+                    marcar(sid, "FALLIDO", mensaje="interrumpida por reinicio del despachador; repetir el despliegue")
                 tabla_lista = True
+                log("Despachador listo")
             # Solicitudes viejas: el runner ya abandono la espera (timeout de 30 min); no se ejecutan tarde
             viejas = "estado = 'PENDIENTE' AND solicitado < now() - INTERVAL 35 MINUTES"
             if sql(f"SELECT COUNT(*) FROM {TABLA} WHERE {viejas}", devolver=True)[0][0]:
@@ -98,6 +120,7 @@ def ciclo():
                     atender(sid, ambiente, version, autor)   # bloquea mientras corre el Job (~4-5 min)
                 except Exception as e:      # una solicitud fallida no detiene el despachador
                     traceback.print_exc()
+                    log(f"ERROR atendiendo {sid}: {e}")
                     marcar(sid, "FALLIDO", mensaje=f"error del despachador: {e}")
                 finally:
                     estado_app["ocupado"] = ""
@@ -109,6 +132,7 @@ def ciclo():
             estado_app["error"] = ""
         except Exception as e:
             traceback.print_exc()
+            log(f"ERROR en el ciclo: {e}")
             estado_app["error"] = str(e)[:300]
         time.sleep(INTERVALO)
 
@@ -150,7 +174,8 @@ vertical-align:middle}th{font-size:12px;color:var(--suave);font-weight:600;borde
 .kpi{background:var(--tarjeta);border:1px solid var(--borde);border-radius:8px;padding:10px 16px;min-width:130px}
 .kpi b{display:block;font-size:22px}.kpi span{font-size:12px;color:var(--suave)}
 .amb{display:inline-block;padding:1px 8px;border-radius:6px;font-size:12px;font-weight:600;border:1px solid var(--borde)}
-.prod{border-color:var(--rojo);color:var(--rojo)}.msg{color:var(--suave);max-width:320px}
+.prod{border-color:var(--rojo);color:var(--rojo)}.msg{color:var(--suave);max-width:360px}
+main{max-width:1280px}.cuerpo{overflow-x:auto}
 .est,code,td.f{white-space:nowrap}
 """
 
@@ -165,10 +190,15 @@ def pagina():
     kpis = "".join(f"<div class='kpi'><b class='{k}'>{n}</b><span>{k.replace('_', ' ').capitalize()}</span></div>"
                    for k, n in conteo.items())
 
+    def corto(texto):
+        """Hashes de commit a 7 caracteres para que la tabla quepa; el valor completo queda en el tooltip."""
+        return re.sub(r"\b([0-9a-f]{7})[0-9a-f]{33}\b", r"\1", str(texto))
+
     def fila(f):
         sid, amb, ver, autor, est, run, msg, sol, act = f
+        ver_tip, ver, msg = e(ver), corto(ver), corto(msg)
         clase_amb = "amb prod" if amb == "prod" else "amb"
-        return (f"<tr><td><span class='{clase_amb}'>{e(amb.upper())}</span></td><td><code>{e(ver)}</code></td>"
+        return (f"<tr><td><span class='{clase_amb}'>{e(amb.upper())}</span></td><td><code title='{ver_tip}'>{e(ver)}</code></td>"
                 f"<td><span class='est {e(est)}'>{e(est.replace('_', ' '))}</span></td><td class='ocultable'>{e(autor)}</td>"
                 f"<td class='ocultable'><code>{e(run)}</code></td><td class='msg ocultable'>{e(msg)}</td>"
                 f"<td class='ocultable f'>{e(sol[:16])}</td><td class='f'>{e(act[:16])}</td></tr>")
