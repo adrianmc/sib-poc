@@ -30,7 +30,7 @@ DDL = (f"CREATE TABLE IF NOT EXISTS {TABLA} (id STRING, ambiente STRING, version
        "STORED AS ICEBERG TBLPROPERTIES ('format-version'='2')")
 INTERVALO = 15
 ultimas = []          # filas para la pagina de estado
-estado_app = {"inicio": time.strftime("%Y-%m-%d %H:%M:%S"), "revision": "", "error": "", "ultima_ok": 0.0}
+estado_app = {"inicio": time.strftime("%Y-%m-%d %H:%M:%S"), "revision": "", "error": "", "ultima_ok": 0.0, "ocupado": ""}
 
 
 def sql(consulta, devolver=False):
@@ -66,6 +66,13 @@ def atender(sid, ambiente, version, autor):
         marcar(sid, "FALLIDO", run_id, f"{job} termino en {estado}; ver el log del run en Jobs")
 
 
+def refrescar_pagina():
+    ultimas[:] = sql(f"SELECT id, ambiente, version, coalesce(autor,''), estado, coalesce(run_id,''), "
+                     f"coalesce(mensaje,''), cast(solicitado AS STRING), cast(actualizado AS STRING) "
+                     f"FROM {TABLA} ORDER BY solicitado DESC LIMIT 20", devolver=True)
+    estado_app["ultima_ok"] = time.time()
+
+
 def ciclo():
     """Bucle del despachador. Todo va dentro del try: si Impala no responde al arrancar (VW suspendido o reanudandose),
     reintenta cada INTERVALO en vez de morir en silencio (leccion 2-nov: el hilo murio en el CREATE TABLE inicial y la
@@ -85,11 +92,15 @@ def ciclo():
             pendientes = sql(f"SELECT id, ambiente, version, autor FROM {TABLA} WHERE estado = 'PENDIENTE' "
                              "ORDER BY solicitado", devolver=True)
             for sid, ambiente, version, autor in pendientes:
+                estado_app["ocupado"] = f"{ambiente.upper()} {version[:12]}"
                 try:
-                    atender(sid, ambiente, version, autor)
+                    refrescar_pagina()
+                    atender(sid, ambiente, version, autor)   # bloquea mientras corre el Job (~4-5 min)
                 except Exception as e:      # una solicitud fallida no detiene el despachador
                     traceback.print_exc()
                     marcar(sid, "FALLIDO", mensaje=f"error del despachador: {e}")
+                finally:
+                    estado_app["ocupado"] = ""
             ultimas[:] = sql(f"SELECT id, ambiente, version, coalesce(autor,''), estado, coalesce(run_id,''), "
                              f"coalesce(mensaje,''), cast(solicitado AS STRING), cast(actualizado AS STRING) "
                              f"FROM {TABLA} ORDER BY solicitado DESC LIMIT 20", devolver=True)
@@ -167,7 +178,10 @@ def pagina():
              "<th>Actualizado (UTC)</th></tr>" + "".join(map(fila, filas)) + "</table>"
              ) if filas else "<div class='vacio'>Sin solicitudes de despliegue.</div>"
     aviso = f"<div class='aviso err'>Error al leer la cola: {e(estado_app['error'])}</div>" if estado_app["error"] else ""
-    if time.time() - estado_app["ultima_ok"] > 3 * INTERVALO:
+    if estado_app["ocupado"]:
+        aviso += (f"<div class='aviso ok'>Ejecutando el despliegue {e(estado_app['ocupado'])}. La cola se vuelve a "
+                  "revisar al terminar (unos 4 a 5 min).</div>")
+    elif time.time() - estado_app["ultima_ok"] > 3 * INTERVALO:
         aviso += ("<div class='aviso err'>El despachador no ha revisado la cola en los ultimos "
                   f"{3 * INTERVALO} s. Revisar que el VW de Impala este encendido; si persiste, Restart de la Application.</div>")
     return f"""<!doctype html><html lang="es"><head><meta charset="utf-8">
