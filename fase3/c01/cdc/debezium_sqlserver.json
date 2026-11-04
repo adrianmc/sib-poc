@@ -47,6 +47,7 @@
     "sasl.mechanism distingue mayusculas: debe ser PLAIN (con 'plain' el productor no autentica: timeout de metadata y el snapshot se frena con la sesion SQL en ASYNC_NETWORK_IO bloqueando escrituras).",
     "snapshot.isolation.mode=snapshot + ALTER DATABASE sbcore SET ALLOW_SNAPSHOT_ISOLATION ON: el snapshot no bloquea UPDATEs en el origen.",
     "Kafka del Data Hub no autocrea topicos: crear en SMM sbcore.historia.esquema y sbcore.sbcore.dbo.clientes/cuentas/creditos antes del deploy.",
-    "Snapshot validado 25-oct 17:05: 1.000.000 mensajes en clientes con op=r."
+    "Snapshot validado 25-oct 17:05: 1.000.000 mensajes en clientes con op=r.",
+    "El topico sbcore.historia.esquema debe tener retention.ms=-1 y retention.bytes=-1: con la retencion por defecto (7 dias) se vacia y el conector falla con 'The db history topic is missing'. Recuperacion: retention -1, snapshot.mode=recovery (o schema_only_recovery en versiones anteriores), reiniciar tarea, al quedar RUNNING regresar snapshot.mode=initial."
   ]
 }

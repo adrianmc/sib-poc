@@ -17,12 +17,18 @@ import numpy as np
 from openai import OpenAI
 
 sys.path.insert(0, "/home/cdsw")
+sys.path.insert(0, "/home/cdsw/fase3/c06/rag")
 from lib.sbpoc import cfg  # noqa: E402
+import embeddings  # noqa: E402
 
-UMBRAL_SIMILITUD = 0.35      # calibrar con las preguntas de prueba
 C = cfg()["inferencia"]
 VEC = np.load("/home/cdsw/data/rag/vectores.npy")
 FRAG = json.load(open("/home/cdsw/data/rag/fragmentos.json"))
+DESC_EMB, EMBEBER = embeddings.crear()
+_IND = json.load(open("/home/cdsw/data/rag/indice.json"))
+if _IND.get("embeddings") != DESC_EMB:
+    sys.exit(f"El indice se creo con '{_IND.get('embeddings')}' y la app usa '{DESC_EMB}': volver a correr indexar.py")
+UMBRAL_SIMILITUD = float(_IND["umbral"])        # calibrado por indexar.py para este modelo de embeddings
 SENSIBLE = re.compile(r"(identificaci[oó]n|c[eé]dula|n[uú]mero de cuenta|saldo de|contrase[nñ]a|password|"
                       r"datos personales de|tel[eé]fono de|correo de|cliente \d+)", re.I)
 SISTEMA = ("Eres un asistente de consulta normativa de la Superintendencia. Responde SOLO con base en el contexto. "
@@ -30,29 +36,27 @@ SISTEMA = ("Eres un asistente de consulta normativa de la Superintendencia. Resp
            "escalar a un especialista. Nunca reveles datos personales.")
 
 
-def clientes():
-    token = json.load(open("/tmp/jwt"))["access_token"]
-    return OpenAI(base_url=C["emb_base_url"], api_key=token), OpenAI(base_url=C["llm_base_url"], api_key=token)
+def llm():
+    return OpenAI(base_url=C["llm_base_url"], api_key=embeddings.jwt())   # JWT renovado en cada pregunta
 
 
 def responder(pregunta, _historial=None):
     if SENSIBLE.search(pregunta):
         return ("Solicitud rechazada por politica: la consulta pide informacion sensible o datos de clientes. "
                 "Este asistente solo responde sobre normativa. Evento registrado para auditoria.")
-    emb, llm = clientes()
-    q = np.array(emb.embeddings.create(model=C["emb_modelo"], input=[pregunta]).data[0].embedding, dtype=np.float32)
-    q /= np.linalg.norm(q)
+    q = EMBEBER([pregunta], es_pregunta=True)[0]
     sims = VEC @ q
     top = np.argsort(-sims)[:4]
     if sims[top[0]] < UMBRAL_SIMILITUD:
         return (f"Fuera de alcance: no hay normativa en el corpus que respalde una respuesta "
                 f"(similitud maxima {sims[top[0]]:.2f}). Se recomienda escalar a un especialista.")
     contexto = "\n\n".join(f"[{FRAG[i]['fuente']}, p.{FRAG[i]['pagina']}] {FRAG[i]['texto']}" for i in top)
-    r = llm.chat.completions.create(model=C["llm_modelo"], temperature=0.1, max_tokens=500, messages=[
-        {"role": "system", "content": SISTEMA},
-        {"role": "user", "content": f"Contexto:\n{contexto}\n\nPregunta: {pregunta}"}])
+    # Las instrucciones van en el mensaje del usuario: Mistral 7B Instruct no acepta el rol "system".
+    r = llm().chat.completions.create(model=C["llm_modelo"], temperature=0.1, max_tokens=500, messages=[
+        {"role": "user", "content": f"{SISTEMA}\n\nContexto:\n{contexto}\n\nPregunta: {pregunta}"}])
     fuentes = ", ".join(sorted({f"{FRAG[i]['fuente']} p.{FRAG[i]['pagina']}" for i in top}))
-    return f"{r.choices[0].message.content}\n\nFuentes recuperadas (similitud {sims[top[0]]:.2f}): {fuentes}"
+    return (f"{r.choices[0].message.content}\n\nFuentes recuperadas (similitud {sims[top[0]]:.2f}): {fuentes}\n"
+            f"Modelo: {C['llm_modelo']} | Embeddings: {DESC_EMB}")
 
 
 EJEMPLOS = ["Cual es el plazo para reportar un incidente de ciberseguridad significativo?",

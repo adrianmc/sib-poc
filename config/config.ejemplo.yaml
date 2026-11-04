@@ -55,10 +55,13 @@ aws:
   sqs_bronce_url: https://sqs.us-east-1.amazonaws.com/CAMBIAR_CUENTA/sb-bronce-eventos
 
 inferencia:
-  llm_base_url: https://CAMBIAR_ENDPOINT_LLM/v1          # Cloudera AI Inference (API compatible OpenAI)
+  # Cloudera AI Inference Service (API compatible OpenAI). LLM de la PoC: Mistral 7B Instruct v0.3 (NIM).
+  # La URL es la del endpoint SIN /chat/completions, terminada en /v1; el modelo es el "Model ID" del endpoint.
+  llm_base_url: https://CAMBIAR_ENDPOINT_LLM/v1
   llm_modelo: CAMBIAR_ID_MODELO_LLM
-  emb_base_url: https://CAMBIAR_ENDPOINT_EMBEDDINGS/v1
-  emb_modelo: CAMBIAR_ID_MODELO_EMBEDDINGS
+  # Embeddings: "local" = modelo multilingue en CPU dentro del proyecto (sin GPU); o la URL /v1 de un NIM de embeddings.
+  emb_base_url: local
+  emb_modelo: intfloat/multilingual-e5-small
 
 entra:
   tenant_id: CAMBIAR

@@ -11,3 +11,4 @@ despliegues/
 # Documentos internos del equipo Cloudera (guiones, planes, validacion): no se publican
 interno/
 logs/
+.DS_Store

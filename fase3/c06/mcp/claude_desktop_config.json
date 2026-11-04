@@ -6,7 +6,7 @@
       "env": {
         "IMPALA_HOST": "CAMBIAR_HOST_IMPALA_DEPTO_A",
         "IMPALA_PORT": "443",
-        "IMPALA_USER": "sb_mcp01",
+        "IMPALA_USER": "user008",
         "IMPALA_PASSWORD": "CAMBIAR",
         "IMPALA_DATABASE": "sb_consumption"
       }
@@ -17,7 +17,7 @@
       "env": {
         "IMPALA_HOST": "CAMBIAR_HOST_IMPALA_DEPTO_A",
         "IMPALA_PORT": "443",
-        "IMPALA_USER": "sb_admin01",
+        "IMPALA_USER": "user001",
         "IMPALA_PASSWORD": "CAMBIAR",
         "IMPALA_DATABASE": "sb_consumption"
       }

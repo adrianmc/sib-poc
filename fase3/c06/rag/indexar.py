@@ -1,6 +1,6 @@
 """
-C06-PRE-05 / AE-07: indexa el corpus normativo sintetico (PDF en S3 o local) con embeddings del
-Cloudera AI Inference Service y guarda un indice vectorial (numpy) en /home/cdsw/data/rag/.
+C06-PRE-05 / AE-07: indexa el corpus normativo sintetico (PDF en S3 o local) con embeddings (Cloudera AI
+Inference Service o modelo local en CPU, ver embeddings.py) y guarda un indice vectorial (numpy) en /home/cdsw/data/rag/.
   python fase3/c06/rag/indexar.py --docs /home/cdsw/data/documentos
 (Descargar antes los PDF desde la Terminal de la sesion, credenciales via IDBroker:
    mkdir -p /home/cdsw/data/documentos && hdfs dfs -get s3a://CAMBIAR_BUCKET/sb/landing/documentos/*.pdf /home/cdsw/data/documentos/)
@@ -11,19 +11,24 @@ import sys
 from pathlib import Path
 
 import numpy as np
-from openai import OpenAI
 from pypdf import PdfReader
 
 sys.path.insert(0, "/home/cdsw")
-from lib.sbpoc import cfg  # noqa: E402
+sys.path.insert(0, "/home/cdsw/fase3/c06/rag")
+import embeddings  # noqa: E402
 
 DESTINO = Path("/home/cdsw/data/rag")
 
-
-def cliente_emb():
-    c = cfg()["inferencia"]
-    token = json.load(open("/tmp/jwt"))["access_token"]     # JWT de la sesion CML
-    return OpenAI(base_url=c["emb_base_url"], api_key=token), c["emb_modelo"]
+# Calibracion del umbral de "fuera de alcance": cada modelo de embeddings tiene su propia escala de similitud
+# (los e5 dan ~0.7 aun entre textos no relacionados). Se toma el punto medio entre la peor pregunta valida
+# y la mejor pregunta fuera de alcance, y se guarda en indice.json para que app.py lo use.
+DENTRO = ["Cual es el plazo para reportar un incidente de ciberseguridad significativo?",
+          "Cuantos dias de atraso definen una operacion en mora para el indicador oficial?",
+          "Que indicador de cobertura de liquidez minimo deben mantener las entidades?",
+          "Cada cuanto se actualizan los datos de clientes de riesgo alto?"]
+FUERA = ["Cual es la mejor receta de gallo pinto?",
+         "Quien gano el ultimo mundial de futbol?",
+         "Recomiendame una pelicula para el fin de semana"]
 
 
 def fragmentos(docs: Path, tam=500, solape=100):
@@ -39,18 +44,27 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--docs", default="/home/cdsw/data/documentos")
     a = ap.parse_args()
-    cli, modelo = cliente_emb()
+    descripcion, embeber = embeddings.crear()
     frags = list(fragmentos(Path(a.docs)))
-    vecs = []
-    for i in range(0, len(frags), 32):
-        r = cli.embeddings.create(model=modelo, input=[f["texto"] for f in frags[i:i + 32]])
-        vecs.extend(d.embedding for d in r.data)
-    m = np.array(vecs, dtype=np.float32)
-    m /= np.linalg.norm(m, axis=1, keepdims=True)
+    if not frags:
+        sys.exit(f"No hay PDF en {a.docs}. Descargarlos primero (ver encabezado).")
+    print(f"Embeddings: {descripcion}. Documentos: {len({f['fuente'] for f in frags})}, fragmentos: {len(frags)}")
+    m = embeber([f["texto"] for f in frags])
     DESTINO.mkdir(parents=True, exist_ok=True)
     np.save(DESTINO / "vectores.npy", m)
     json.dump(frags, open(DESTINO / "fragmentos.json", "w"), ensure_ascii=False)
     print(f"Indice vectorial: {len(frags)} fragmentos, dimension {m.shape[1]}")
+
+    def maxima(preguntas):
+        return [float((m @ q).max()) for q in embeber(preguntas, es_pregunta=True)]
+    dentro, fuera = maxima(DENTRO), maxima(FUERA)
+    for p, v in zip(DENTRO + FUERA, dentro + fuera):
+        print(f"  similitud {v:.3f}  {'VALIDA ' if p in DENTRO else 'FUERA  '} {p}")
+    umbral = round((min(dentro) + max(fuera)) / 2, 3)
+    if min(dentro) <= max(fuera):
+        print("AVISO: una pregunta fuera de alcance se parece mas al corpus que una valida; revisar el corpus o el modelo")
+    print(f"Umbral de similitud calibrado: {umbral}")
+    json.dump({"embeddings": descripcion, "umbral": umbral}, open(DESTINO / "indice.json", "w"))
 
 
 if __name__ == "__main__":

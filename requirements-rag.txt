@@ -7,3 +7,7 @@ numpy
 pypdf
 openai
 gradio
+# Embeddings locales en CPU (config inferencia.emb_base_url: local). Torch CPU, sin CUDA (mucho mas liviano).
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+sentence-transformers
