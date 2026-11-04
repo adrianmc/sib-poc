@@ -35,3 +35,4 @@ el flujo se muestra con Jobs de Cloudera AI. Mismo pipeline, mismos controles". 
 lo ejecuta, verifica y registra en `sb_gov.despliegues`). Rollback: `rollback_ref = v1.0.0`.
 Red: el runner (EC2 Windows) debe alcanzar la URL del workspace de Cloudera AI (allowlist si aplica).
 demo 2026-11-03
+demo 2026-11-04
