@@ -34,3 +34,4 @@ el flujo se muestra con Jobs de Cloudera AI. Mismo pipeline, mismos controles". 
 `fase3/c05/LEEME_CICD.md`: el workflow llama a `desplegar_cai.py` (apunta el job del ambiente a la version,
 lo ejecuta, verifica y registra en `sb_gov.despliegues`). Rollback: `rollback_ref = v1.0.0`.
 Red: el runner (EC2 Windows) debe alcanzar la URL del workspace de Cloudera AI (allowlist si aplica).
+demo 2026-11-03
